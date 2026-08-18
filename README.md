@@ -1,7 +1,8 @@
-# Curso de Backend con Node.js
+ Backend con Node.js
 
-## Tu nombre
+
 Ana Anselmi 
+cedula:29.640.288
 
 ## Descripción del repositorio
 Este repositorio contiene las actividades prácticas y proyectos desarrollados durante el curso de backend. El objetivo es documentar el progreso, construir servidores desde cero utilizando herramientas nativas de Node.js y registrar el diagnóstico de fallas en entornos de prueba.
