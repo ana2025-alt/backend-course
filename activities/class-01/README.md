@@ -15,6 +15,7 @@ Se implementó un servidor con manejo de rutas mediante sentencias condicionales
 * **Ruta `/health`:** Devuelve Status 200 y el texto `OK` (`text/plain`).
 * **Ruta `/api/info`:** Devuelve Status 200 y un objeto estructurado (`application/json`).
 * **Rutas inexistentes:** Cualquier otra ruta devuelve Status 404 Not found.
+* Validación y robustez: Se implementó la clase URL para ignorar posibles parámetros (?query=...) y se bloquean las peticiones que no sean GET (Status 405 Method Not Allowed).
 
 ## Evidencia reproducible
 El código final en `src/server.js` puede ejecutarse sin dependencias adicionales (`npm install` no es requerido, solo `node`). Al probar cada ruta en el navegador, se observa la respuesta esperada y la consola del servidor registra cada método y URL solicitada (ej. `GET /health`).
@@ -33,6 +34,7 @@ Cliente (Navegador/curl)       Servidor Node.js (server.js)
        |                                   |    ├── if ('/api/info') -> 200 OK (JSON)
        |                                   |    └── else -> 404 Not found
        |                                   |
-       | 4. Respuesta HTTP                 |
+       | 4. Respuesta HTTP                 |     | 3. Verifica el método HTTP y evalúa la ruta                                                         (pathname):
+|                                                ├── if ('/') -> 200 OK
        |<----------------------------------|
        |    (Ej: Status 200, Body: 'OK')   | 
