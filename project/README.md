@@ -49,6 +49,20 @@ project/
     Decisión técnica: Adopción de cancelación lógica en lugar de borrado físico (docs/decisions/001-cancel-instead-of-delete.md).
 
 
+    Incremento 1: HTTP como contrato y Request API Lite (Clase 02 — Base)
+    
+    Andamiaje inicial: Separación básica de responsabilidades entre src/server.js, src/app.js, src/routes/ y src/data/.
+    
+    Contrato HTTP estricto: Definición previa de endpoints, métodos y códigos de estado en docs/http-contract.md.
+    
+    Endpoints iniciales:
+    GET /requests $\rightarrow$ Lista completa en memoria.
+    
+    GET /requests/:id $\rightarrow$ Búsqueda por identificador con validación 404.
+    
+    POST /requests $\rightarrow$ Creación con validación de campo requerido title (400 Bad Request).
+
+
 | Archivo                                        | Responsabilidad                                                                                        |
 | :--------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
 | `src/server.js`                                | Inicializa el proceso y escucha peticiones en el puerto 3000.                                          |
