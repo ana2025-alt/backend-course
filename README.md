@@ -28,6 +28,9 @@ El proyecto transversal (**Request API Full**) representa el servicio acumulativ
 - 📄 **[Contrato HTTP del Proyecto (v3)](./project/docs/http-contract-v3.md)**
 - 📝 **[Nota de Decisión Técnica 001: Cancelar en lugar de eliminar](./project/docs/adr-001-cancel-vs-delete.md)**
 
+
+Estado de cada entregaEntregaMódulo / TemaEstadoEvidencias / EnlaceClase 01Servidor nativo Node.js (HTTP)CompletadoVer entregaClase 02Express & Contratos HTTP LiteCompletadoVer entregaClase 03Máquina de Estados, PATCH & ErroresCompletadoVer entregaProyectoRequest API Full (v3)CompletadoVer proyecto
+
 ---
 
 ## Instrucciones de ejecución
@@ -47,4 +50,4 @@ npm install
 npm start
 
 
-Estado de cada entregaEntregaMódulo / TemaEstadoEvidencias / EnlaceClase 01Servidor nativo Node.js (HTTP)CompletadoVer entregaClase 02Express & Contratos HTTP LiteCompletadoVer entregaClase 03Máquina de Estados, PATCH & ErroresCompletadoVer entregaProyectoRequest API Full (v3)CompletadoVer proyecto
+
