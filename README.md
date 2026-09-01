@@ -57,9 +57,9 @@ npm start
 
 
 
-
-Entrega,Tag de Git,Estado,Descripción
-Clase 01,class-01-submission,Completado,"Servidor nativo con node:http, sin dependencias."
-Clase 02,class-02-submission,Completado,API Lite con Express y diseño Contract-First.
-Clase 03 (Diseño),class-03-design,Completado,"Artefactos previos de diseño, modelo y matriz de pruebas."
-Clase 03 (Final),class-03-submission,Completado,"Máquina de estados, PATCH, arquitectura modular y reflexión."
+| Entrega | Tag de Git | Estado | Descripción |
+| :--- | :--- | :--- | :--- |
+| **Clase 01** | `class-01-submission` | **Completado** | Servidor nativo con node:http, sin dependencias. |
+| **Clase 02** | `class-02-submission` | **Completado** | API Lite con Express y diseño Contract-First. |
+| **Clase 03 (Diseño)** | `class-03-design` | **Completado** | Artefactos previos de diseño, modelo y matriz de pruebas. |
+| **Clase 03 (Final)** | `class-03-submission` | **Completado** | Máquina de estados, PATCH, arquitectura modular y reflexión. | 
