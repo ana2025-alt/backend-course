@@ -45,3 +45,7 @@ npm install
 
 # 4. Iniciar el servidor
 npm start
+
+
+
+Estado de cada entregaEntregaMódulo / TemaEstadoEvidencias / EnlaceClase 01Servidor nativo Node.js (HTTP)CompletadoVer entregaClase 02Express & Contratos HTTP LiteCompletadoVer entregaClase 03Máquina de Estados, PATCH & ErroresCompletadoVer entregaProyectoRequest API Full (v3)CompletadoVer proyecto
