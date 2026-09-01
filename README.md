@@ -1,3 +1,6 @@
+Aquí tienes el contenido completo en formato Markdown, listo para copiar y pegar directamente en tu archivo `README.md`:
+
+```markdown
 # Backend con Node.js
 
 ## Tu nombre
@@ -28,9 +31,6 @@ El proyecto transversal (**Request API Full**) representa el servicio acumulativ
 - 📄 **[Contrato HTTP del Proyecto (v3)](./project/docs/http-contract-v3.md)**
 - 📝 **[Nota de Decisión Técnica 001: Cancelar en lugar de eliminar](./project/docs/adr-001-cancel-vs-delete.md)**
 
-
-Estado de cada entregaEntregaMódulo / TemaEstadoEvidencias / EnlaceClase 01Servidor nativo Node.js (HTTP)CompletadoVer entregaClase 02Express & Contratos HTTP LiteCompletadoVer entregaClase 03Máquina de Estados, PATCH & ErroresCompletadoVer entregaProyectoRequest API Full (v3)CompletadoVer proyecto
-
 ---
 
 ## Instrucciones de ejecución
@@ -49,5 +49,19 @@ npm install
 # 4. Iniciar el servidor
 npm start
 
+```
 
+---
 
+## Estado de cada entrega
+
+| Entrega | Módulo / Tema | Estado | Evidencias / Enlace |
+| --- | --- | --- | --- |
+| **Clase 01** | Servidor nativo Node.js (HTTP) | `Completado` | [Ver entrega](https://www.google.com/search?q=./clase-01/) |
+| **Clase 02** | Express & Contratos HTTP Lite | `Completado` | [Ver entrega](https://www.google.com/search?q=./clase-02/) |
+| **Clase 03** | Máquina de Estados, PATCH & Errores | `Completado` | [Ver entrega](https://www.google.com/search?q=./clase-03/) |
+| **Proyecto** | Request API Full (v3) | `Completado` | [Ver proyecto](https://www.google.com/search?q=./project/) |
+
+```
+
+```
