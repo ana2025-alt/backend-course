@@ -93,6 +93,11 @@ cd activities/class-03
 npm install
 npm start
 
+# Para la actividad de la Clase 04
+cd activities/class-04
+npm install
+npm start
+
 ```
 
 ---
