@@ -1,73 +1,58 @@
-import { Router } from 'express';
-import { RequestsService } from './requests.service.js';
+// ============================================================================
+// STARTER NOTE — Station 6 touches this file lightly.
+// ============================================================================
 
-export const requestsRouter = Router();
+import express from 'express';
+import {
+  listRequests,
+  getRequest,
+  createRequest,
+  patchRequest,
+  getHistory
+} from './requests.service.js';
+import { respondError } from '../../http/respond-error.js';
 
-// GET /api/v1/requests
-requestsRouter.get('/', async (req, res, next) => {
+const router = express.Router();
+
+router.get('/', async (req, res) => {
   try {
-    const { status, priority, limit, offset } = req.query;
-    const data = await RequestsService.listRequests({
-      status,
-      priority,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      offset: offset ? parseInt(offset, 10) : undefined
-    });
-    res.status(200).json({ data });
+    const { status, priority } = req.query;
+    res.status(200).json(await listRequests(req.auth, { status, priority }));
   } catch (error) {
-    next(error);
+    respondError(res, error);
   }
 });
 
-// GET /api/v1/requests/:id
-requestsRouter.get('/:id', async (req, res, next) => {
+router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = await RequestsService.getRequestById(id);
-    res.status(200).json({ data });
+    res.status(200).json(await getRequest(req.auth, Number(req.params.id)));
   } catch (error) {
-    next(error);
+    respondError(res, error);
   }
 });
 
-// POST /api/v1/requests
-requestsRouter.post('/', async (req, res, next) => {
+router.get('/:id/history', async (req, res) => {
   try {
-    const { title, description, priority } = req.body;
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    const data = await RequestsService.createRequest({ title, description, priority });
-    res.status(201).json({ data });
+    res.status(200).json(await getHistory(req.auth, Number(req.params.id)));
   } catch (error) {
-    next(error);
+    respondError(res, error);
   }
 });
 
-// PATCH /api/v1/requests/:id/status
-requestsRouter.patch('/:id/status', async (req, res, next) => {
+router.post('/', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    if (!status) {
-      return res.status(400).json({ error: 'Status is required' });
-    }
-    const data = await RequestsService.updateStatus(id, status);
-    res.status(200).json({ data });
+    res.status(201).json(await createRequest(req.auth, req.body));
   } catch (error) {
-    next(error);
+    respondError(res, error);
   }
 });
 
-// DELETE /api/v1/requests/:id -> Cancelación lógica
-requestsRouter.delete('/:id', async (req, res, next) => {
+router.patch('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = await RequestsService.cancelRequest(id);
-    res.status(200).json({ data, message: 'Request successfully cancelled' });
+    res.status(200).json(await patchRequest(req.auth, Number(req.params.id), req.body));
   } catch (error) {
-    next(error);
+    respondError(res, error);
   }
 });
 
-export default requestsRouter; 
+export default router; 

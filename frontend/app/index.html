@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitudes — /app</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="../index.html" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">← Hub Principal</a>
+      <strong>Solicitudes</strong>
+    </div>
+    <div id="session-box" class="session-box">
+      <span id="session-user" class="session-user">Sin sesión</span>
+      <button id="logout-btn" hidden type="button">Salir</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Panel de Autenticación -->
+    <section id="auth-panel" class="panel">
+      <div class="auth-grid">
+        <div>
+          <h2>Entrar</h2>
+          <form id="login-form" class="stack">
+            <label>Email <input name="email" type="email" required autocomplete="username"></label>
+            <label>Password <input name="password" type="password" required minlength="15" maxlength="128" autocomplete="current-password"></label>
+            <button type="submit">Iniciar sesión</button>
+          </form>
+          <p id="auth-feedback" class="feedback" role="status"></p>
+        </div>
+        
+        <div>
+          <h2>Registrarse</h2>
+          <form id="register-form" class="stack">
+            <label>Email <input name="email" type="email" required autocomplete="username"></label>
+            <label>Password <input name="password" type="password" required minlength="15" maxlength="128" autocomplete="new-password"></label>
+            <button type="submit">Crear cuenta</button>
+          </form>
+          <p id="register-feedback" class="feedback" role="status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel Principal de Solicitudes -->
+    <section id="requests-panel" class="panel" hidden>
+      
+      <!-- Crear Solicitud (Solo Requester) -->
+      <div id="create-request-section" class="stack">
+        <h2>Nueva Solicitud</h2>
+        <form id="create-request-form" class="stack">
+          <label>Título <input name="title" type="text" required maxlength="100"></label>
+          <label>Descripción <textarea name="description" required maxlength="500"></textarea></label>
+          <button type="submit">Crear Solicitud</button>
+        </form>
+        <p id="create-feedback" class="feedback" role="status"></p>
+        <hr>
+      </div>
+
+      <h2>Listado de Solicitudes</h2>
+      <p id="requests-state" class="feedback" role="status">—</p>
+      <ul id="requests-list" class="request-list"></ul>
+    </section>
+
+    <!-- Panel de Detalle y Edición -->
+    <section id="detail-panel" class="panel" hidden>
+      <button id="back-to-list-btn" type="button">← Volver al listado</button>
+      <h2 id="detail-title">Detalle de Solicitud</h2>
+      
+      <form id="edit-request-form" class="stack">
+        <input type="hidden" name="id" id="edit-id">
+        
+        <!-- Campos Requester -->
+        <fieldset id="requester-fields">
+          <legend>Contenido</legend>
+          <label>Título <input name="title" id="edit-title" type="text" required></label>
+          <label>Descripción <textarea name="description" id="edit-description" required></textarea></label>
+        </fieldset>
+
+        <!-- Campos Agent -->
+        <fieldset id="agent-fields" disabled>
+          <legend>Gestión de Estado</legend>
+          <label>Prioridad 
+            <select name="priority" id="edit-priority">
+              <option value="low">Baja</option>
+              <option value="normal">Normal</option>
+              <option value="high">Alta</option>
+            </select>
+          </label>
+          <label>Estado 
+            <select name="status" id="edit-status">
+              <option value="open">Abierta</option>
+              <option value="in_progress">En Progreso</option>
+              <option value="resolved">Resuelta</option>
+              <option value="closed">Cerrada</option>
+            </select>
+          </label>
+        </fieldset>
+        
+        <button type="submit" id="save-changes-btn">Guardar Cambios</button>
+      </form>
+      <p id="edit-feedback" class="feedback" role="status"></p>
+
+      <h3>Historial</h3>
+      <ul id="history-list" class="request-list"></ul>
+    </section>
+  </main>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html> 

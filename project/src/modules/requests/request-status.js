@@ -1,29 +1,26 @@
-export const STATUS = {
-  OPEN: 'open',
-  IN_PROGRESS: 'in-progress',
-  RESOLVED: 'resolved',
-  CANCELLED: 'cancelled',
-};
+// Domain rules for the request lifecycle. Unchanged since class 03:
+// pure domain rules do not depend on where the data lives.
 
-export const VALID_STATUSES = Object.values(STATUS);
-export const TERMINAL_STATUSES = [STATUS.RESOLVED, STATUS.CANCELLED];
+export const STATUSES = ['open', 'in_progress', 'resolved', 'closed', 'cancelled'];
 
-export const VALID_TRANSITIONS = {
-  [STATUS.OPEN]: [STATUS.IN_PROGRESS, STATUS.CANCELLED],
-  [STATUS.IN_PROGRESS]: [STATUS.RESOLVED, STATUS.CANCELLED],
-  [STATUS.RESOLVED]: [],
-  [STATUS.CANCELLED]: [],
+export const TERMINAL_STATUSES = ['closed', 'cancelled'];
+
+const ALLOWED_TRANSITIONS = {
+  open: ['in_progress', 'cancelled'],
+  in_progress: ['resolved', 'cancelled'],
+  resolved: ['in_progress', 'closed'],
+  closed: [],
+  cancelled: []
 };
 
 export function isValidStatus(status) {
-  return VALID_STATUSES.includes(status);
+  return STATUSES.includes(status);
 }
 
-export function isTerminalStatus(status) {
+export function isTerminal(status) {
   return TERMINAL_STATUSES.includes(status);
 }
 
-export function canTransition(fromStatus, toStatus) {
-  const allowed = VALID_TRANSITIONS[fromStatus] || [];
-  return allowed.includes(toStatus);
-} 
+export function canTransition(from, to) {
+  return (ALLOWED_TRANSITIONS[from] ?? []).includes(to);
+}

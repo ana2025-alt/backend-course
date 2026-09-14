@@ -1,95 +1,63 @@
-# Request API Full — Proyecto Transversal
+# Request API v5 — Starter (Clase 05 · taller autodirigido)
 
-API REST en Express para la gestión de solicitudes de mantenimiento institucional. Este proyecto evoluciona de manera acumulativa a lo largo del curso.
+Punto de partida del taller: tu API de la clase 04, con la infraestructura de
+la clase 05 preparada. Si tu propio proyecto está sano, puedes continuar sobre
+el tuyo copiando las piezas nuevas; este starter es el plan B garantizado.
 
----
+## Qué está listo y qué te toca
 
-## Requisitos e Instalación
+| Pieza | Estado |
+| ----- | ------ |
+| `database/migrations/001..002` | ✅ De la clase 04 |
+| `database/migrations/003..005` | ✅ Listas — **aplícalas en orden** (estación 0) |
+| `src/database/` (pool, transaction) | ✅ Listas |
+| `src/app-error.js` · `src/http/respond-error.js` | ✅ Errores tipados compartidos (401/403 ya mapeados) |
+| `src/modules/auth/password.js` | ✅ Helper scrypt completo — NO diseñes tu propia criptografía |
+| `src/middleware/cors.js` | ✅ Para la entrega 05A |
+| `scripts/validate-class-05.js` | ✅ La especificación ejecutable del taller |
+| `activities/class-05/` | 📝 Estación 1 — diseño ANTES de código |
+| `src/modules/users/` | 🔨 Estación 2 (store + mapper) |
+| `src/modules/auth/auth.service.js` | 🔨 Estaciones 2, 3 y 4 |
+| `src/modules/auth/token.js` | 🔨 Estación 4 (guiado) |
+| `src/middleware/authenticate.js` | 🔨 Estación 5 |
+| `src/modules/requests/*` | 🔨 Estaciones 6 y 7 (llega como en la clase 04, con notas de evolución) |
+| `src/modules/requests/request.policy.js` | 🔨 Estación 7 |
 
-* **Node.js:** v18 o superior (`node --version`).
-* **Base de datos:** Instancia de PostgreSQL (Supabase).
-* **Dependencias:** Express, pg, dotenv (`npm install`).
+## Estación 0 — Preparar el campo
 
-### Configuración de Variables de Entorno
-
-Crea un archivo `.env` en la raíz de `project/` basándote en `.env.example`:
-
-```env
-DATABASE_URL=postgresql://usuario:contraseña@host:5432/postgres 
-
-cd project
+```bash
 npm install
-npm run db:check   # Valida la conexión a PostgreSQL y tablas
-npm start          # Inicia el servidor
+cp .env.example .env    # DATABASE_URL de tu proyecto + JWT_SECRET propio
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+                        # → pega el resultado como JWT_SECRET en .env
+npm run db:check
+# SQL Editor de Supabase: 003, 004 y 005, en orden
+npm run validate:class-05 -- --stage setup
+```
 
+## El ciclo de cada estación
 
-project/
-├── .env.example
-├── package.json
-├── README.md
-├── database/
-│   └── migrations/
-│       ├── 001_create_requests.sql
-│       └── 002_create_request_status_history.sql
-├── docs/
-│   ├── http-contract.md
-│   └── decisions/
-│       └── 001-cancel-instead-of-delete.md
-├── scripts/
-│   └── check-database.js
-└── src/
-    ├── app.js
-    ├── server.js
-    ├── database/
-    │   ├── pool.js
-    │   └── transaction.js
-    └── modules/
-        └── requests/
-            ├── request.mapper.js
-            ├── request-status.js
-            ├── requests.routes.js
-            ├── requests.service.js
-            └── requests.store.js
+```text
+leer el requisito → predecir el riesgo → decidir → implementar →
+intentar el abuso → npm run validate:class-05 -- --stage <name> → corregir
+```
 
+Etapas: `setup` · `access-design` · `register` · `password` · `login` ·
+`authentication` · `ownership` · `authorization` · (sin argumentos: boss battle).
 
-            Historial de Incrementos
-Incremento 3: Persistencia Relacional y Transacciones (Clase 04 — Actual)
-Migración a PostgreSQL (Supabase): Se reemplazó el almacenamiento en memoria por persistencia relacional mediante el driver nativo pg y un pool de conexiones (src/database/pool.js).
+## Reglas que no se negocian
 
-Arquitectura en 3 capas:
+* La IA solo después del checkpoint `class-05-access-design`.
+* `.env` es local y jamás se sube; `.env.example` solo lleva placeholders.
+* Las passwords no se registran en logs ni viajan en respuestas — nunca.
+* `createdBy` y `changedBy` salen del token verificado, jamás del body.
+* Las reglas de estado de la clase 03 siguen vigentes para todos los roles.
 
-Store (requests.store.js): Consultas SQL parametrizadas sin ORM para evitar inyección SQL.
+## La prueba reina
 
-Service (requests.service.js): Orquestación de reglas de negocio y transacciones atómicas.
+```bash
+npm run validate:class-05
+```
 
-Routes/Controller (requests.routes.js): Enrutamiento HTTP, validaciones y códigos de estado.
-
-Trazabilidad transaccional: Implementación de withTransaction para registrar cambios de estado atómicamente en la tabla request_status_history.
-
-Capa de transformación (Mapper): request.mapper.js traduce entre la convención de base de datos (snake_case) y la representación HTTP (camelCase).
-
-
-Incremento 2: Recursos, Estado y Reglas (Clase 03)Arquitectura modular: Organización por dominio en src/modules/requests/.
-Máquina de estados: Transiciones controladas (open $\rightarrow$ in_progress $\rightarrow$ resolved / cancelled).
-Filtros combinables: Parámetros de consulta en GET /api/v1/requests?status=&priority=.
-Cancelación lógica: Documentada en docs/decisions/001-cancel-instead-of-delete.md.
-
-Incremento 1: HTTP como contrato (Clase 02)Andamiaje inicial: Separación entre server.js, app.js y routers.Contrato HTTP estricto: Especificación en docs/http-contract.md.
-
-| Archivo | Responsabilidad |
-| --- | --- |
-| `src/database/pool.js` | Conexión con PostgreSQL mediante connection pooling. |
-| `src/database/transaction.js` | Manejador de transacciones ACID (`BEGIN`, `COMMIT`, `ROLLBACK`). |
-| `src/modules/requests/request.mapper.js` | Traduce filas SQL (`snake_case`) a DTOs para la API (`camelCase`). |
-| `src/modules/requests/requests.store.js` | Consultas SQL directas y parametrizadas (`$1`, `$2`). |
-| `src/modules/requests/requests.service.js` | Reglas de negocio, validaciones lógicas y manejo transaccional. |
-| `src/modules/requests/requests.routes.js` | Endpoints HTTP (`GET`, `POST`, `PATCH`, `DELETE`). |
-
-Reglas de Negocio
-Sin ORM: Acceso directo a base de datos usando SQL estándar parametrizado.
-
-Persistencia Atómica: Toda mutación de estado registra su historial de auditoría bajo la misma transacción.
-
-Cancelación Lógica: No se permite borrado físico (DELETE); se actualiza el estado a cancelled.
-
-Formato Consistente: Entrada y salida de datos estructurada con camelCase.
+`RESULT: 12/12 · CLASS 05 COMPLETED` — con tu servidor apagado y encendido de
+nuevo antes, para recordar que nada vive en memoria.

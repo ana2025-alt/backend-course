@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>El mundo de la autenticación — /learn (05B)</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="../index.html" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">← Hub Principal</a>
+      <strong>El mundo de la autenticación (05B)</strong>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Panel Teórico: Los 20 contenidos organizados -->
+    <section class="panel">
+      <h2>Guía de Seguridad y Autenticación</h2>
+      <p class="feedback">20 conceptos clave sobre identidad digital, cifrado y control de accesos.</p>
+      <div id="theory-container" style="max-height: 350px; overflow-y: auto; padding-right: 0.5rem; display: grid; gap: 0.8rem; margin-top: 1rem;">
+        <!-- Se inyecta dinámicamente desde main.js -->
+      </div>
+    </section>
+
+    <!-- Interacción 1: Simulador de Token JWT -->
+    <section class="panel">
+      <h2>1. Simulador de Token JWT (Ficticio)</h2>
+      <p class="feedback">Escribe un nombre de usuario y rol para generar un payload codificado seguro.</p>
+      <div class="stack" style="margin-top: 1rem;">
+        <label>Usuario Ficticio <input type="text" id="jwt-user" value="ana.agente" /></label>
+        <label>Rol <input type="text" id="jwt-role" value="agent" /></label>
+        <button type="button" id="generate-jwt-btn">Generar Token</button>
+        <pre id="jwt-output" style="background: var(--bg); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; overflow-x: auto; color: var(--primary);">Haz clic en generar...</pre>
+      </div>
+    </section>
+
+    <!-- Interacción 2: Validador de Fortaleza de Contraseñas -->
+    <section class="panel">
+      <h2>2. Validador de Passphrase (Regla de 15+ Caracteres)</h2>
+      <p class="feedback">Prueba una contraseña para comprobar si cumple con los estándares modernos.</p>
+      <div class="stack" style="margin-top: 1rem;">
+        <label>Contraseña de prueba <input type="password" id="pass-input" placeholder="Escribe al menos 15 caracteres..." /></label>
+        <p id="pass-feedback" class="feedback" style="font-weight: bold;">—</p>
+      </div>
+    </section>
+
+    <!-- Interacción 3: Quiz Rápido de Autenticación -->
+    <section class="panel">
+      <h2>3. Autoevaluación de Conceptos</h2>
+      <p class="feedback">Pon a prueba tu conocimiento sobre sesiones y tokens.</p>
+      <div class="stack" style="margin-top: 1rem;">
+        <p id="quiz-question" style="font-weight: 500;">¿Dónde se recomienda almacenar un token JWT en aplicaciones de alta seguridad para mitigar ataques XSS?</p>
+        <div style="display: grid; gap: 0.5rem;">
+          <button type="button" class="quiz-option" data-answer="wrong">En localStorage de forma permanente</button>
+          <button type="button" class="quiz-option" data-answer="correct">En memoria o en cookies HttpOnly seguras</button>
+          <button type="button" class="quiz-option" data-answer="wrong">En una variable global sin cifrar</button>
+        </div>
+        <p id="quiz-result" class="feedback" style="margin-top: 0.5rem;"></p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html> 

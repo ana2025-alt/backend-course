@@ -1,23 +1,23 @@
+// Application setup: middlewares and module mounting. It does not open any port.
 import express from 'express';
-import requestsRouter from './modules/requests/requests.routes.js';
+import { corsPolicy } from './middleware/cors.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import requestsRoutes from './modules/requests/requests.routes.js';
+import { authenticate } from './middleware/authenticate.js';
 
-export const app = express();
+const app = express();
 
+// CORS first: preflights must be answered before anything else runs.
+app.use(corsPolicy);
+
+// Parses incoming JSON bodies into req.body.
 app.use(express.json());
 
-// Montar el router con el prefijo /api/v1/requests
-app.use('/api/v1/requests', requestsRouter);
+// /auth mixes public routes (register, login) and one protected route
+// (/me), so the module applies `authenticate` internally where needed.
+app.use('/auth', authRoutes);
 
-// Ruta base opcional para verificar que el server responde
-app.get('/', (req, res) => {
-  res.json({ message: 'Request API v4 running' });
-});
-
-// Middleware centralizado de errores
-app.use((err, req, res, next) => {
-  console.error(err);
-  const status = err.status || 500;
-  res.status(status).json({ error: err.message || 'Internal Server Error' });
-});
+// Every requests route needs a trusted actor.
+app.use('/requests', authenticate, requestsRoutes);
 
 export default app; 
