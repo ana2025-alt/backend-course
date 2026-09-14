@@ -7,78 +7,89 @@ API REST en Express para la gestión de solicitudes de mantenimiento institucion
 ## Requisitos e Instalación
 
 * **Node.js:** v18 o superior (`node --version`).
-* **Dependencias:** Express (`npm install`).
+* **Base de datos:** Instancia de PostgreSQL (Supabase).
+* **Dependencias:** Express, pg, dotenv (`npm install`).
 
-```bash
+### Configuración de Variables de Entorno
+
+Crea un archivo `.env` en la raíz de `project/` basándote en `.env.example`:
+
+```env
+DATABASE_URL=postgresql://usuario:contraseña@host:5432/postgres 
+
 cd project
 npm install
-npm start
+npm run db:check   # Valida la conexión a PostgreSQL y tablas
+npm start          # Inicia el servidor
 
-Servidor en ejecución en http://localhost:3000.
-
-Estructura Actual del Proyecto (Clase 03)
-La arquitectura organiza el código por dominio dentro de src/modules/requests/:
 
 project/
+├── .env.example
 ├── package.json
 ├── README.md
+├── database/
+│   └── migrations/
+│       ├── 001_create_requests.sql
+│       └── 002_create_request_status_history.sql
 ├── docs/
 │   ├── http-contract.md
 │   └── decisions/
 │       └── 001-cancel-instead-of-delete.md
+├── scripts/
+│   └── check-database.js
 └── src/
     ├── app.js
     ├── server.js
+    ├── database/
+    │   ├── pool.js
+    │   └── transaction.js
     └── modules/
         └── requests/
+            ├── request.mapper.js
             ├── request-status.js
-            ├── requests.store.js
-            └── requests.routes.js 
-
-    Historial de IncrementosIncremento 2: Recursos, Estado y Reglas (Clase 03 — Actual)
-    Arquitectura modular: Se consolidaron rutas, reglas de negocio y almacén en memoria en src/modules/requests/.
-            
-    Máquina de estados: Ciclo de vida controlado (open $\rightarrow$ in-progress $\rightarrow$ resolved / cancelled).
-            
-    Nuevo endpoint: PATCH /requests/:id con control estricto de transiciones válidas y bloqueo de modificaciones sobre estados terminales (409 Conflict).
-            
-    Filtros avanzados: Búsqueda combinable por query params (GET /requests?status=&priority=).
-            
-    Formato de error unificado: { "error": { "code": "...", "message": "..." } }.
-            
-    Decisión técnica: Adopción de cancelación lógica en lugar de borrado físico (docs/decisions/001-cancel-instead-of-delete.md).
+            ├── requests.routes.js
+            ├── requests.service.js
+            └── requests.store.js
 
 
-    Incremento 1: HTTP como contrato y Request API Lite (Clase 02 — Base)
-    
-    Andamiaje inicial: Separación básica de responsabilidades entre src/server.js, src/app.js, src/routes/ y src/data/.
-    
-    Contrato HTTP estricto: Definición previa de endpoints, métodos y códigos de estado en docs/http-contract.md.
-    
-    Endpoints iniciales:
-    GET /requests $\rightarrow$ Lista completa en memoria.
-    
-    GET /requests/:id $\rightarrow$ Búsqueda por identificador con validación 404.
-    
-    POST /requests $\rightarrow$ Creación con validación de campo requerido title (400 Bad Request).
+            Historial de Incrementos
+Incremento 3: Persistencia Relacional y Transacciones (Clase 04 — Actual)
+Migración a PostgreSQL (Supabase): Se reemplazó el almacenamiento en memoria por persistencia relacional mediante el driver nativo pg y un pool de conexiones (src/database/pool.js).
+
+Arquitectura en 3 capas:
+
+Store (requests.store.js): Consultas SQL parametrizadas sin ORM para evitar inyección SQL.
+
+Service (requests.service.js): Orquestación de reglas de negocio y transacciones atómicas.
+
+Routes/Controller (requests.routes.js): Enrutamiento HTTP, validaciones y códigos de estado.
+
+Trazabilidad transaccional: Implementación de withTransaction para registrar cambios de estado atómicamente en la tabla request_status_history.
+
+Capa de transformación (Mapper): request.mapper.js traduce entre la convención de base de datos (snake_case) y la representación HTTP (camelCase).
 
 
-| Archivo                                        | Responsabilidad                                                                                        |
-| :--------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| `src/server.js`                                | Inicializa el proceso y escucha peticiones en el puerto 3000.                                          |
-| `src/app.js`                                   | Instancia Express, configura `express.json()` y monta los módulos de rutas.                            |
-| `src/modules/requests/request-status.js`        | Define estados válidos, matriz de transiciones y validadores de estados terminales.                    |
-| `src/modules/requests/requests.store.js`       | Manejo de persistencia volátil en memoria y operaciones CRUD (`findAll`, `findById`, `create`, `update`). |
-| `src/modules/requests/requests.routes.js`      | Enrutamiento HTTP (`GET`, `POST`, `PATCH`), validación de parámetros y respuestas semánticas.          |
-| `docs/http-contract.md`                        | Especificación del contrato HTTP de la API.                                                            |
-| `docs/decisions/001-cancel-instead-of-delete.md`| Justificación técnica sobre la omisión de `DELETE` a favor de `status: cancelled`.                     |
+Incremento 2: Recursos, Estado y Reglas (Clase 03)Arquitectura modular: Organización por dominio en src/modules/requests/.
+Máquina de estados: Transiciones controladas (open $\rightarrow$ in_progress $\rightarrow$ resolved / cancelled).
+Filtros combinables: Parámetros de consulta en GET /api/v1/requests?status=&priority=.
+Cancelación lógica: Documentada en docs/decisions/001-cancel-instead-of-delete.md.
 
+Incremento 1: HTTP como contrato (Clase 02)Andamiaje inicial: Separación entre server.js, app.js y routers.Contrato HTTP estricto: Especificación en docs/http-contract.md.
 
-Reglas de Negocio y Exclusiones
-Sin base de datos externa: Persistencia en memoria volátil (arreglo en requests.store.js).
+| Archivo | Responsabilidad |
+| --- | --- |
+| `src/database/pool.js` | Conexión con PostgreSQL mediante connection pooling. |
+| `src/database/transaction.js` | Manejador de transacciones ACID (`BEGIN`, `COMMIT`, `ROLLBACK`). |
+| `src/modules/requests/request.mapper.js` | Traduce filas SQL (`snake_case`) a DTOs para la API (`camelCase`). |
+| `src/modules/requests/requests.store.js` | Consultas SQL directas y parametrizadas (`$1`, `$2`). |
+| `src/modules/requests/requests.service.js` | Reglas de negocio, validaciones lógicas y manejo transaccional. |
+| `src/modules/requests/requests.routes.js` | Endpoints HTTP (`GET`, `POST`, `PATCH`, `DELETE`). |
 
-Sin borrado físico: Las solicitudes se cancelan mediante PATCH /requests/:id con status: "cancelled".
+Reglas de Negocio
+Sin ORM: Acceso directo a base de datos usando SQL estándar parametrizado.
 
-Protección de estados terminales: Solicitudes en resolved o cancelled rechazan modificaciones con 409 Conflict.
+Persistencia Atómica: Toda mutación de estado registra su historial de auditoría bajo la misma transacción.
 
-Sin librerías de validación de terceros: Validaciones nativas en JavaScript con módulos ES (import/export).
+Cancelación Lógica: No se permite borrado físico (DELETE); se actualiza el estado a cancelled.
+
+Formato Consistente: Entrada y salida de datos estructurada con camelCase.

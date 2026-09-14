@@ -1,25 +1,28 @@
-# 001. Cancelar en lugar de eliminar solicitudes
+# 001. Cancelar en lugar de eliminar solicitudes físicamente
 
-* **Fecha:**  2026-08-29
+* **Fecha:** 2026-08-29 (Actualizado: 2026-09-14)
 * **Estado:** Aceptada
 
 ## Contexto
-El sistema gestiona solicitudes de mantenimiento de una institución. Surge la duda de si se debe permitir a los usuarios o administradores borrar físicamente solicitudes (`DELETE /requests/:id`) cuando ya no son necesarias o cuando fueron creadas por error.
+El sistema gestiona solicitudes de mantenimiento institucional. Surge la necesidad de definir el comportamiento ante peticiones de eliminación (`DELETE /api/v1/requests/:id`) cuando un reporte ya no es necesario o fue creado por error.
 
 ## Opciones consideradas
 
-### Opción A: Permitir borrado físico (`DELETE /requests/:id`)
-* **Beneficio:** Libera memoria y permite purgar datos basura o creados por equivocación de inmediato.
-* **Costo:** Se pierde la trazabilidad histórica y el registro de auditoría. Si una solicitud referenciaba materiales, tiempos o personal, esa información desaparece sin dejar rastro de qué ocurrió.
+### Opción A: Borrado físico en base de datos (`DELETE FROM requests`)
+* **Beneficio:** Purga datos erróneos de la base de datos de inmediato.
+* **Costo:** Se destruye la trazabilidad histórica y la auditoría. Si la solicitud tenía eventos asociados o métricas de gestión, esa información desaparece y rompería la integridad referencial con `request_status_history`.
 
-### Opción B: Cancelación lógica mediante máquina de estados (`PATCH /requests/:id` con `status: "cancelled"`)
-* **Beneficio:** Preserva el historial completo de incidencias. Permite auditar motivos de cancelación, conocer métricas de reportes erróneos y previene la pérdida accidental de datos.
-* **Costo:** El recurso permanece en memoria ocupando espacio y requiere manejar estados terminales para evitar que se sigan modificando una vez cancelados.
+### Opción B: Cancelación lógica transaccional (`status: "cancelled"`)
+* **Beneficio:** Preserva el registro histórico completo y la auditoría relacional. Permite evaluar incidentes descartados sin alterar la integridad referencial.
+* **Costo:** Requiere persistir registros inactivos en PostgreSQL y aplicar reglas estrictas para bloquear modificaciones sobre estados terminales.
 
 ## Decisión
-Se adopta la **Opción B (Cancelación lógica)**. No se implementará el método HTTP `DELETE` en la API. Toda solicitud que no deba proceder pasará al estado terminal `cancelled`.
+Se adopta la **Opción B (Cancelación lógica)** expuesta a través del método semántico `DELETE /api/v1/requests/:id` y `PATCH /api/v1/requests/:id/status`. 
+
+La API atiende solicitudes `DELETE`, pero en lugar de destruir la fila en PostgreSQL, ejecuta una actualización transaccional que establece `status = 'cancelled'` e inserta el evento correspondiente en `request_status_history`.
 
 ## Consecuencias
-* La API no expone endpoints `DELETE`.
-* Una vez que una solicitud pasa a `cancelled`, la máquina de estados bloquea cualquier intento posterior de edición retornando `409 Conflict`.
-* Los clientes pueden filtrar solicitudes activas o canceladas utilizando los parámetros de consulta `?status=`. 
+* La API expone `DELETE /api/v1/requests/:id`, devolviendo `200 OK` con la solicitud actualizada a estado `cancelled`.
+* Una vez que una solicitud alcanza el estado `cancelled`, la máquina de estados y las reglas de servicio prohíben mutaciones posteriores retornando `409 Conflict`.
+* Los clientes pueden auditar solicitudes canceladas o excluirlas mediante filtros en `GET /api/v1/requests?status=`.
+* Se preserva la integridad de la clave foránea en la tabla de auditoría `request_status_history`. 

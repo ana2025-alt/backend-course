@@ -4,11 +4,11 @@
 
 | Columna | Tipo | ¿Nulo? | Default | Restricciones | ¿Quién lo genera? |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | `BIGINT` | No | `GENERATED ALWAYS AS IDENTITY` | `PRIMARY KEY` | PostgreSQL |
-| `title` | `VARCHAR(200)` | No | — | Sin restricciones adicionales | Cliente (validado no vacío) |
+| `id` | `SERIAL` / `BIGINT` | No | Autoincremental | `PRIMARY KEY` | PostgreSQL |
+| `title` | `VARCHAR(255)` | No | — | Sin restricciones adicionales | Cliente (validado no vacío) |
 | `description` | `TEXT` | Sí | `NULL` | Sin restricciones adicionales | Cliente (opcional) |
-| `priority` | `VARCHAR(20)` | No | `'medium'` | `CHECK (priority IN ('low', 'medium', 'high'))` | Cliente / Default DB |
-| `status` | `VARCHAR(30)` | No | `'open'` | `CHECK (status IN ('open', 'in-progress', 'resolved', 'cancelled'))` | Servidor / Default DB |
+| `priority` | `VARCHAR(50)` | No | `'medium'` | `CHECK (priority IN ('low', 'medium', 'high'))` | Cliente / Default DB |
+| `status` | `VARCHAR(50)` | No | `'open'` | `CHECK (status IN ('open', 'in_progress', 'resolved', 'cancelled'))` | Servidor / Default DB |
 | `created_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Inmutable | PostgreSQL |
 | `updated_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Actualizado en cada modificación | PostgreSQL / Servidor |
 
@@ -16,13 +16,13 @@
 
 | Columna | Tipo | ¿Nulo? | Default | Restricciones | ¿Quién lo genera? |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | `BIGINT` | No | `GENERATED ALWAYS AS IDENTITY` | `PRIMARY KEY` | PostgreSQL |
-| `request_id` | `BIGINT` | No | — | `REFERENCES requests(id) ON DELETE RESTRICT` | Servidor |
-| `previous_status`| `VARCHAR(30)` | Sí | `NULL` | `CHECK (previous_status IS NULL OR previous_status IN ('open', 'in-progress', 'resolved', 'cancelled'))` | Servidor (NULL al crear) |
-| `new_status` | `VARCHAR(30)` | No | — | `CHECK (new_status IN ('open', 'in-progress', 'resolved', 'cancelled'))` | Servidor |
+| `id` | `SERIAL` / `BIGINT` | No | Autoincremental | `PRIMARY KEY` | PostgreSQL |
+| `request_id` | `INTEGER` / `BIGINT` | No | — | `REFERENCES requests(id) ON DELETE CASCADE` | Servidor |
+| `previous_status` | `VARCHAR(50)` | Sí | `NULL` | `CHECK (previous_status IS NULL OR previous_status IN ('open', 'in_progress', 'resolved', 'cancelled'))` | Servidor (`NULL` al crear) |
+| `new_status` | `VARCHAR(50)` | No | — | `CHECK (new_status IN ('open', 'in_progress', 'resolved', 'cancelled'))` | Servidor |
 | `changed_at` | `TIMESTAMPTZ` | No | `CURRENT_TIMESTAMP` | Inmutable | PostgreSQL |
 
-> **Justificación de `previous_status` NULL:** Al momento de crear la solicitud (`POST /requests`), se registra el primer hito de creación en el historial con `previous_status = NULL` y `new_status = 'open'`, marcando el origen del ciclo de vida.
+> **Justificación de `previous_status` NULL:** Al crear la solicitud (`POST /api/v1/requests`), se registra el primer hito en el historial con `previous_status = NULL` y `new_status = 'open'`, formalizando el inicio del ciclo de vida bajo la misma transacción atómica.
 
 ---
 
@@ -30,6 +30,6 @@
 
 | Capa | Reglas que protege |
 | :--- | :--- |
-| **HTTP (Routes)** | Formato JSON válido, presencia de parámetros de ruta (`:id` numérico), captura de query params y traducción a códigos HTTP. |
-| **Servicio (Domain / Service)** | Máquina de estados finitos (transiciones válidas), bloqueo de estados terminales (`resolved`, `cancelled`), orquestación de transacciones atómicas. |
-| **Persistencia (PostgreSQL)** | Integridad referencial (`FK`), restricciones de dominio (`CHECK`), unicidad de identidades (`PK`) e inmutabilidad de timestamps de base de datos. | 
+| **HTTP (Routes)** | Formato JSON válido, presencia de parámetros de ruta (`:id`), captura de query params (`status`, `priority`, `limit`, `offset`) y asignación de códigos HTTP semánticos (`200`, `201`, `400`, `404`, `500`). |
+| **Servicio (Service / Business)** | Reglas del dominio, consistencia de máquina de estados, mapeo DTO (`RequestMapper`) y orquestación de transacciones atómicas (`withTransaction`). |
+| **Persistencia (Store / PostgreSQL)** | Consultas parametrizadas anti SQL-injection (`$1, $2`), integridad referencial (`FK`), unicidad (`PK`), tipos de datos y persistencia transaccional (`BEGIN`, `COMMIT`, `ROLLBACK`). | 

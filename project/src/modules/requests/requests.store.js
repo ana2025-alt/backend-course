@@ -1,85 +1,114 @@
-let requests = [
-  {
-    id: 1,
-    title: 'Projector does not turn on',
-    description: 'The projector in room 204 shows no image during class.',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2026-03-01T08:00:00.000Z',
-    updatedAt: '2026-03-01T08:00:00.000Z',
-  },
-  {
-    id: 2,
-    title: 'Broken chair in the lab',
-    description: 'One chair in the computer lab has a loose back rest.',
-    status: 'in-progress',
-    priority: 'medium',
-    createdAt: '2026-03-01T09:30:00.000Z',
-    updatedAt: '2026-03-01T10:00:00.000Z',
-  },
-  {
-    id: 3,
-    title: 'Wi-Fi drops in the library',
-    description: 'The connection drops every few minutes on the second floor.',
-    status: 'open',
-    priority: 'low',
-    createdAt: '2026-03-01T11:15:00.000Z',
-    updatedAt: '2026-03-01T11:15:00.000Z',
-  },
-];
+import { pool } from '../../database/pool.js';
 
-let nextId = 4;
+export class RequestsStore {
+  static async findAll({ status, priority, limit = 50, offset = 0 } = {}) {
+    const conditions = [];
+    const values = [];
 
-export function findAll({ status, priority } = {}) {
-  let result = requests;
+    if (status) {
+      values.push(status);
+      conditions.push(`status = $${values.length}`);
+    }
 
-  if (status) {
-    result = result.filter((r) => r.status === status);
+    if (priority) {
+      values.push(priority);
+      conditions.push(`priority = $${values.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    values.push(limit);
+    const limitParam = `$${values.length}`;
+    values.push(offset);
+    const offsetParam = `$${values.length}`;
+
+    const query = `
+      SELECT id, title, description, priority, status, created_at, updated_at
+      FROM requests
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ${limitParam} OFFSET ${offsetParam};
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows;
   }
 
-  if (priority) {
-    result = result.filter((r) => r.priority === priority);
+  static async findById(id, client = pool) {
+    const query = `
+      SELECT id, title, description, priority, status, created_at, updated_at
+      FROM requests
+      WHERE id = $1;
+    `;
+    const result = await client.query(query, [id]);
+    return result.rows[0] || null;
   }
 
-  return result;
-}
+  static async create({ title, description, priority = 'medium', status = 'open' }, client = pool) {
+    const query = `
+      INSERT INTO requests (title, description, priority, status)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, title, description, priority, status, created_at, updated_at;
+    `;
+    const result = await client.query(query, [title, description, priority, status]);
+    return result.rows[0];
+  }
 
-export function findById(id) {
-  return requests.find((r) => r.id === id) || null;
-}
+  static async update(id, fields, client = pool) {
+    const updates = [];
+    const values = [id];
 
-export function create({ title, description, priority }) {
-  const now = new Date().toISOString();
-  const newRequest = {
-    id: nextId++,
-    title,
-    description: description || '',
-    status: 'open',
-    priority: priority || 'medium',
-    createdAt: now,
-    updatedAt: now,
-  };
+    if (fields.title !== undefined) {
+      values.push(fields.title);
+      updates.push(`title = $${values.length}`);
+    }
 
-  requests.push(newRequest);
-  return newRequest;
-}
+    if (fields.description !== undefined) {
+      values.push(fields.description);
+      updates.push(`description = $${values.length}`);
+    }
 
-export function update(id, fields) {
-  const index = requests.findIndex((r) => r.id === id);
-  if (index === -1) return null;
+    if (fields.priority !== undefined) {
+      values.push(fields.priority);
+      updates.push(`priority = $${values.length}`);
+    }
 
-  const current = requests[index];
-  const now = new Date().toISOString();
+    if (fields.status !== undefined) {
+      values.push(fields.status);
+      updates.push(`status = $${values.length}`);
+    }
 
-  const updated = {
-    ...current,
-    ...(fields.title !== undefined && { title: fields.title }),
-    ...(fields.description !== undefined && { description: fields.description }),
-    ...(fields.status !== undefined && { status: fields.status }),
-    ...(fields.priority !== undefined && { priority: fields.priority }),
-    updatedAt: now,
-  };
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
 
-  requests[index] = updated;
-  return updated;
+    const query = `
+      UPDATE requests
+      SET ${updates.join(', ')}
+      WHERE id = $1
+      RETURNING id, title, description, priority, status, created_at, updated_at;
+    `;
+
+    const result = await client.query(query, values);
+    return result.rows[0] || null;
+  }
+
+  static async createStatusHistory({ requestId, previousStatus, newStatus }, client = pool) {
+    const query = `
+      INSERT INTO request_status_history (request_id, previous_status, new_status)
+      VALUES ($1, $2, $3)
+      RETURNING id, request_id, previous_status, new_status, changed_at;
+    `;
+    const result = await client.query(query, [requestId, previousStatus, newStatus]);
+    return result.rows[0];
+  }
+
+  static async findStatusHistoryByRequestId(requestId, client = pool) {
+    const query = `
+      SELECT id, request_id, previous_status, new_status, changed_at
+      FROM request_status_history
+      WHERE request_id = $1
+      ORDER BY changed_at ASC;
+    `;
+    const result = await client.query(query, [requestId]);
+    return result.rows;
+  }
 } 
