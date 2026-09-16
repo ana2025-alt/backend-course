@@ -1,3 +1,6 @@
+// Coordination layer for authentication: registration rules, credential
+// verification and token emission. No SQL (users.store), no cryptography
+// (password.js, token.js), no HTTP status codes (AppError categories).
 import { AppError } from '../../app-error.js';
 import {
   hashPassword,
@@ -9,130 +12,114 @@ import { issueToken, TOKEN_TTL_SECONDS } from './token.js';
 import { findByEmail, findById, insertUser } from '../users/users.store.js';
 import { mapUserRow } from '../users/user.mapper.js';
 
-const FORBIDDEN_FIELDS = [
-  'role',
-  'id',
-  'createdAt',
-  'updatedAt',
-  'createdBy',
-  'changedBy',
-  'passwordHash',
-  'password_hash'
-];
+// Fields the server controls. Sending them is rejected explicitly — a
+// silently ignored "role": "agent" would teach the client that trying
+// costs nothing.
+const SERVER_CONTROLLED_FIELDS = ['role', 'id', 'createdAt', 'updatedAt', 'createdBy', 'passwordHash'];
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The same generic error for every login failure: an attacker must not
+// learn whether the email exists.
+function invalidCredentials() {
+  return new AppError('auth', 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
+}
+
+// Verified against when the email does not exist, so both login paths do
+// comparable work and timing reveals less. Computed once, lazily.
+let fallbackHashPromise = null;
+function fallbackHash() {
+  fallbackHashPromise ??= hashPassword('workshop-timing-fallback-not-a-real-password');
+  return fallbackHashPromise;
+}
+
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function assertValidPassword(password) {
+  if (typeof password !== 'string') {
+    throw new AppError('contract', 'INVALID_PASSWORD', 'A password is required.');
+  }
+  // Code points, not UTF-16 units: passphrases may use any alphabet,
+  // spaces included. Length is the only rule — no arbitrary symbol quotas.
+  const length = [...password].length;
+  if (length < PASSWORD_MIN_LENGTH || length > PASSWORD_MAX_LENGTH) {
+    throw new AppError('contract', 'INVALID_PASSWORD',
+      `The password must be between ${PASSWORD_MIN_LENGTH} and ${PASSWORD_MAX_LENGTH} characters.`);
+  }
+}
 
 export async function register(body) {
-  if (!body || typeof body !== 'object') {
-    throw new AppError('contract', 'INVALID_BODY', 'Request body must be an object.');
-  }
+  const input = body ?? {};
 
-  // 1. Validar lista de campos del servidor (rechazar explícitamente)
-  for (const field of FORBIDDEN_FIELDS) {
-    if (field in body) {
-      throw new AppError(
-        'contract',
-        'SERVER_CONTROLLED_FIELD',
-        `Field '${field}' is controlled by the server and cannot be provided.`
-      );
+  for (const field of SERVER_CONTROLLED_FIELDS) {
+    if (field in input) {
+      throw new AppError('contract', 'SERVER_CONTROLLED_FIELD',
+        field === 'role'
+          ? 'Role is controlled by the server.'
+          : `The field "${field}" is controlled by the server.`);
     }
   }
 
-  const { email, password } = body;
-
-  // 2. Validar y normalizar email
-  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-    throw new AppError('contract', 'INVALID_EMAIL', 'A valid email address is required.');
+  if (typeof input.email !== 'string' || !EMAIL_PATTERN.test(input.email.trim())) {
+    throw new AppError('contract', 'INVALID_EMAIL', 'A valid email is required.');
   }
-  const normalizedEmail = email.trim().toLowerCase();
+  assertValidPassword(input.password);
 
-  // 3. Validar formato de password (15 a 128 caracteres, permite espacios)
-  const minLength = PASSWORD_MIN_LENGTH ?? 15;
-  const maxLength = PASSWORD_MAX_LENGTH ?? 128;
-  if (
-    typeof password !== 'string' ||
-    password.length < minLength ||
-    password.length > maxLength
-  ) {
-    throw new AppError(
-      'contract',
-      'INVALID_PASSWORD',
-      `Password must be between ${minLength} and ${maxLength} characters.`
-    );
+  const email = normalizeEmail(input.email);
+
+  // Generic 409: the response does not confirm that the email is taken.
+  const duplicate = () => new AppError('domain', 'ACCOUNT_CANNOT_BE_CREATED',
+    'The account cannot be created with the supplied information.');
+
+  if (await findByEmail(email)) {
+    throw duplicate();
   }
 
-  // 4. Hashear y persistir
-  const passwordHash = await hashPassword(password);
-
+  const passwordHash = await hashPassword(input.password);
   try {
-    const row = await insertUser({
-      email: normalizedEmail,
-      passwordHash,
-      role: 'requester'
-    });
+    const row = await insertUser({ email, passwordHash });
     return mapUserRow(row);
-  } catch (err) {
-    if (err.code === '23505') {
-      throw new AppError(
-        'domain',
-        'ACCOUNT_CANNOT_BE_CREATED',
-        'The account cannot be created with the supplied information.'
-      );
-    }
-    throw err;
+  } catch (error) {
+    // 23505 = unique_violation: someone registered the same email between
+    // our check and our insert. Same generic answer.
+    if (error.code === '23505') throw duplicate();
+    throw error;
   }
 }
 
 export async function login(body) {
-  const genericError = () =>
-    new AppError('auth', 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
-
-  if (!body || typeof body !== 'object') {
-    throw genericError();
-  }
-
-  const { email, password } = body;
+  const { email, password } = body ?? {};
   if (typeof email !== 'string' || typeof password !== 'string') {
-    throw genericError();
+    throw invalidCredentials();
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = await findByEmail(normalizedEmail);
-
+  const user = await findByEmail(normalizeEmail(email));
   if (!user) {
-    // Mitigación de timing side-channel
-    await verifyPassword(password, '$scrypt$ln=16384,r=8,p=1$dummy$dummy').catch(() => {});
-    throw genericError();
+    // Do comparable work anyway, then fail with the same generic error.
+    await verifyPassword(password, await fallbackHash());
+    throw invalidCredentials();
   }
 
-  const isValid = await verifyPassword(password, user.password_hash || user.passwordHash);
-  if (!isValid) {
-    throw genericError();
+  const passwordMatches = await verifyPassword(password, user.password_hash);
+  if (!passwordMatches) {
+    throw invalidCredentials();
   }
-
-  const token = await issueToken({
-    userId: user.id,
-    role: user.role
-  });
 
   return {
-    accessToken: token,
+    accessToken: await issueToken({ id: user.id, role: user.role }),
     tokenType: 'Bearer',
     expiresIn: TOKEN_TTL_SECONDS
   };
 }
 
 export async function getCurrentUser(actor) {
-  if (!actor || !actor.userId) {
-    throw new AppError('auth', 'AUTHENTICATION_REQUIRED', 'Authentication required.');
+  const row = await findById(actor.userId);
+  if (!row) {
+    // Valid token for an account that no longer exists: no identity.
+    throw new AppError('auth', 'INVALID_TOKEN', 'The token is invalid or has expired.');
   }
-
-  const user = await findById(actor.userId);
-  if (!user) {
-    throw new AppError('auth', 'AUTHENTICATION_REQUIRED', 'User not found.');
-  }
-
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role
-  };
-} 
+  const user = mapUserRow(row);
+  return { id: user.id, email: user.email, role: user.role };
+}

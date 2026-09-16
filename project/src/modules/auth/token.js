@@ -1,19 +1,5 @@
-// ============================================================================
-// STARTER NOTE — Station 4 (guided).
-//
-// This module issues and verifies the workshop JWT. The environment plumbing
-// is ready; the two functions are yours. Use the `jose` library (already in
-// package.json): SignJWT to issue, jwtVerify to verify.
-//
-// Claims the contract requires:
-//   sub  -> user id            iat -> issued at
-//   role -> requester | agent  exp -> iat + TOKEN_TTL_SECONDS (1 hour)
-//   iss  -> backend-course-api aud -> backend-course-client
-//
-// Rule of the station: decoding lets you read; VERIFYING lets you trust.
-// jwtVerify must check signature, algorithm, issuer, audience and expiry.
-// The token is signed, NOT encrypted: put nothing sensitive in the payload.
-// ============================================================================
+// Token issuing and verification. This module knows JWTs and nothing
+// else: no SQL, no requests, no Express.
 import 'dotenv/config';
 import { SignJWT, jwtVerify } from 'jose';
 
@@ -30,26 +16,27 @@ const AUDIENCE = process.env.JWT_AUDIENCE ?? 'backend-course-client';
 
 export const TOKEN_TTL_SECONDS = Number(process.env.JWT_TTL_SECONDS ?? 3600);
 
+// The payload carries identity and role — nothing sensitive. A JWT is
+// signed, not encrypted: anyone holding it can READ these claims.
 export async function issueToken(user) {
   const issuedAt = Math.floor(Date.now() / 1000);
-  const expirationTime = issuedAt + TOKEN_TTL_SECONDS;
-
   return await new SignJWT({ role: user.role })
     .setProtectedHeader({ alg: ALGORITHM, typ: 'JWT' })
-    .setSubject(String(user.id ?? user.userId))
+    .setSubject(user.id)
     .setIssuedAt(issuedAt)
-    .setExpirationTime(expirationTime)
+    .setExpirationTime(issuedAt + TOKEN_TTL_SECONDS)
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
     .sign(SECRET_KEY);
 }
 
+// Decoding lets you read; verifying lets you trust. jwtVerify checks the
+// signature, the algorithm, iss, aud and exp — all of them, every time.
 export async function verifyToken(token) {
   const { payload } = await jwtVerify(token, SECRET_KEY, {
     algorithms: [ALGORITHM],
     issuer: ISSUER,
     audience: AUDIENCE
   });
-
   return payload;
-} 
+}

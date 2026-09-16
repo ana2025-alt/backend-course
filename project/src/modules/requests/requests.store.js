@@ -1,7 +1,7 @@
-// ============================================================================
-// STARTER NOTE — Station 6 evolves this file. It arrives exactly as your
-// class 04 delivery left it.
-// ============================================================================
+// Data access for the requests module. It runs parameterized queries and
+// returns rows (or null); it knows nothing about HTTP status codes or
+// domain transitions. Every function accepts an optional `db` so the
+// service can pass a transaction client — defaulting to the shared pool.
 
 import { pool } from '../../database/pool.js';
 
@@ -81,20 +81,23 @@ export async function updateRequest(id, changes, db = pool) {
   return result.rows[0] ?? null;
 }
 
-export async function insertStatusHistory(requestId, previousStatus, newStatus, changedBy, db = pool) {
+export async function insertHistoryEvent(event, db = pool) {
+  const { requestId, type, fromStatus, toStatus, fromPriority, toPriority, changedBy } = event;
   await db.query(
-    `INSERT INTO request_status_history (request_id, previous_status, new_status, changed_by)
-     VALUES ($1, $2, $3, $4)`,
-    [requestId, previousStatus, newStatus, changedBy]
+    `INSERT INTO request_history
+        (request_id, type, from_status, to_status, from_priority, to_priority, changed_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [requestId, type, fromStatus ?? null, toStatus ?? null,
+      fromPriority ?? null, toPriority ?? null, changedBy ?? null]
   );
 }
 
 export async function findHistory(requestId, db = pool) {
   const result = await db.query(
-    `SELECT previous_status, new_status, changed_by, changed_at
-     FROM request_status_history
+    `SELECT id, type, from_status, to_status, from_priority, to_priority, created_at
+     FROM request_history
      WHERE request_id = $1
-     ORDER BY id`,
+     ORDER BY created_at ASC, id ASC`,
     [requestId]
   );
   return result.rows;

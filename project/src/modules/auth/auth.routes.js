@@ -1,9 +1,5 @@
 // HTTP layer of the auth module: extracts the body, invokes the service
 // and translates results. No SQL, no cryptography, no token internals.
-//
-// STARTER NOTE — this thin layer is READY (it mirrors requests.routes.js).
-// Your work happens in auth.service.js, token.js, users.store.js and the
-// middleware. /auth/me stays broken until station 5 implements authenticate.
 import express from 'express';
 import { register, login, getCurrentUser } from './auth.service.js';
 import { respondError } from '../../http/respond-error.js';

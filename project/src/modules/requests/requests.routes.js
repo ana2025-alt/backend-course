@@ -1,14 +1,16 @@
-// ============================================================================
-// STARTER NOTE — Station 6 touches this file lightly.
-// ============================================================================
+// HTTP layer of the requests module: it extracts path, query, body and
+// the authenticated actor, invokes the operation, and translates results
+// and typed errors into HTTP responses. It contains no SQL and no domain
+// rules. The router assumes app.js mounted it behind `authenticate`, so
+// req.auth is always present here.
 
 import express from 'express';
 import {
   listRequests,
   getRequest,
+  getRequestHistory,
   createRequest,
-  patchRequest,
-  getHistory
+  patchRequest
 } from './requests.service.js';
 import { respondError } from '../../http/respond-error.js';
 
@@ -33,7 +35,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/:id/history', async (req, res) => {
   try {
-    res.status(200).json(await getHistory(req.auth, Number(req.params.id)));
+    res.status(200).json(await getRequestHistory(req.auth, Number(req.params.id)));
   } catch (error) {
     respondError(res, error);
   }
