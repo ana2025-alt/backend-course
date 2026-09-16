@@ -34,23 +34,18 @@ Este repositorio contiene las actividades prácticas, los artefactos de diseño,
 ## Instrucciones de ejecución
 
 ### Backend (Proyecto Transversal)
-\`\`\`bash
 cd project
 npm install
 npm run class-06:doctor
 npm run db:seed
 npm start
-\`\`\`
 
 ### Validación y Pruebas (Clase 06)
-\`\`\`bash
 cd project
 npm install
 npm run class-06:doctor
 npm run db:seed
 npm run validate:class-06
-\`\`\`
-
 ---
 
 ## Estado de cada entrega
