@@ -1,81 +1,75 @@
-# Recuperación · Entorno y configuración
+# Recuperación · Entorno
 
-## No existe .env
+## Supabase inaccesible
 
-Síntoma:
-El doctor dice "There is no .env file yet" o la app pide DATABASE_URL.
+**Síntoma:** el doctor falla en "Database connection established"; el terminal muestra `ETIMEDOUT`, `ECONNREFUSED` o `ENOTFOUND`.
 
-Significado:
-La configuración local no existe todavía; el ejemplo sí.
+**Qué significa aproximadamente:** el proceso no logra hablar con tu base. Casi nunca es tu código: es la red, la cadena de conexión o el proyecto pausado.
 
-Comprueba:
-`ls -a` (macOS/Linux) o `dir /a` (Windows) — ¿ves `.env.example` pero no `.env`?
+**Qué comprobar:**
 
-Acción:
-macOS/Linux: `cp .env.example .env` · Windows (cmd): `copy .env.example .env`
-· PowerShell: `Copy-Item .env.example .env`. Luego llena los valores.
+* El estado del proyecto en el dashboard de Supabase (los proyectos gratuitos se pausan tras días de inactividad).
+* Que `DATABASE_URL` fue copiada del diálogo Connect, no tecleada.
+* Si tu red es solo IPv4, que estás usando la cadena del Session pooler.
 
-Qué NO hacer:
-No renombres `.env.example`: debe seguir existiendo como plantilla versionada.
+**Acción sugerida:** restaura el proyecto si está pausado, espera a que diga Active y vuelve a ejecutar `npm run class-07:doctor`.
 
-Pregunta:
-¿Por qué `.env.example` sí puede vivir en Git y `.env` no?
+**Qué no hacer:** crear un proyecto nuevo (perderías tus datos de la clase 06); pegar tu cadena completa en un chat para pedir ayuda.
 
-## Falta una variable
+**Pregunta para comprender:** ¿este fallo es un error esperado o inesperado para TU backend? ¿Qué código debería responder tu API mientras tanto?
 
-Síntoma:
-`DATABASE_URL is required.` o `JWT_SECRET is required.` al arrancar.
+## `.env` faltante o incompleto
 
-Significado:
-El archivo existe pero esa línea está vacía o mal escrita.
+**Síntoma:** el doctor falla en "Environment configured", o la app lanza `DATABASE_URL is required.`
 
-Comprueba:
-Abre `.env`: ¿la variable tiene valor? ¿el nombre coincide EXACTO con `.env.example`?
+**Qué significa aproximadamente:** el proceso arrancó sin su configuración local. `.env` no se versiona: cada clon lo recrea.
 
-Acción:
-`DATABASE_URL`: cópiala del diálogo Connect de Supabase.
-`JWT_SECRET`: ejecútalo con `npm run generate:secret` y pega el resultado.
+**Qué comprobar:** que `.env` existe junto a `package.json` y que `DATABASE_URL` y `JWT_SECRET` tienen valor.
 
-Qué NO hacer:
-No inventes un secreto corto a mano; no compartas la URL con nadie (IA incluida).
+**Acción sugerida:** `cp .env.example .env`, pega la cadena de la clase 06 y, si perdiste el secreto, `npm run generate:secret`.
 
-Pregunta:
-¿Qué puede hacer otra persona con tu cadena de conexión completa?
+**Qué no hacer:** versionar `.env` para "no volver a perderlo"; inventar un secreto corto a mano.
+
+**Pregunta para comprender:** ¿por qué el repositorio incluye `.env.example` pero excluye `.env`?
+
+## Seed incompleto
+
+**Síntoma:** el doctor falla en "Seed data available", o `incidents:reproduce` dice que no encuentra usuarios o solicitudes del seed.
+
+**Qué significa aproximadamente:** faltan los datos identificables del taller (usuarios `*.seed@example.test` y sus solicitudes).
+
+**Qué comprobar:** la salida de `npm run db:seed` — debe terminar con "Seed completed successfully."
+
+**Acción sugerida:** `npm run db:seed`. Es repetible: reconstruye SOLO los datos del taller y conserva lo demás.
+
+**Qué no hacer:** insertar filas a mano en la tabla; borrar tablas completas para "empezar limpio".
+
+**Pregunta para comprender:** ¿qué distingue a los datos que el seed puede tocar de los que no?
 
 ## Puerto ocupado
 
-Síntoma:
-`EADDRINUSE: address already in use :::3000`.
+**Síntoma:** `npm run dev` termina con `EADDRINUSE: address already in use`.
 
-Significado:
-Otro proceso (probablemente un `npm run dev` anterior) sigue usando el puerto.
+**Qué significa aproximadamente:** otro proceso (probablemente un servidor tuyo anterior) sigue escuchando en ese puerto.
 
-Comprueba:
-¿Tienes otra terminal con el servidor corriendo?
+**Qué comprobar:** terminales abiertas con un `npm run dev` olvidado.
 
-Acción:
-Cierra el proceso anterior (Ctrl+C en su terminal) o cambia `PORT` en `.env`.
+**Acción sugerida:** cierra el proceso anterior (Ctrl+C en su terminal) o cambia `PORT` en `.env` y reinicia.
 
-Qué NO hacer:
-No abras cinco terminales con cinco servidores para "probar".
+**Qué no hacer:** matar procesos del sistema que no reconoces.
 
-Pregunta:
-¿Por qué dos procesos no pueden escuchar el mismo puerto?
+**Pregunta para comprender:** ¿por qué dos procesos no pueden escuchar el mismo puerto?
 
-## Compartí un secreto por accidente
+## JWT inválido
 
-Síntoma:
-Pegaste tu `DATABASE_URL` o `JWT_SECRET` en un chat, issue o captura.
+**Síntoma:** todos los logins devuelven token, pero TODA petición autenticada responde `401 INVALID_TOKEN`.
 
-Significado:
-Ese valor ya no es secreto, sin importar si borras el mensaje.
+**Qué significa aproximadamente:** el secreto con el que se firmó el token no es el mismo con el que se verifica — normalmente cambiaste `JWT_SECRET` con el servidor corriendo o entre login y petición.
 
-Acción:
-Supabase → Settings → Database → restablece la contraseña; genera un
-`JWT_SECRET` nuevo con `npm run generate:secret`; actualiza tu `.env`.
+**Qué comprobar:** que no editaste `.env` después de obtener el token; que solo hay UN valor de `JWT_SECRET`.
 
-Qué NO hacer:
-No asumas que "nadie lo vio". Rotar cuesta un minuto.
+**Acción sugerida:** reinicia el servidor y vuelve a hacer login para obtener un token firmado con el secreto actual.
 
-Pregunta:
-¿Por qué borrar el mensaje no des-expone el secreto?
+**Qué no hacer:** copiar un token viejo de otra sesión; comentar la verificación "mientras tanto".
+
+**Pregunta para comprender:** ¿por qué cambiar el secreto invalida todos los tokens emitidos?

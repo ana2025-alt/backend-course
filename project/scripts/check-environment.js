@@ -1,21 +1,24 @@
-// Environment doctor. Non-destructive: it only reads. Run it whenever you
-// are not sure WHERE a problem lives (environment, database, schema, seed
-// or application). It never prints secrets.
-import { existsSync, readFileSync } from 'node:fs';
+// Environment doctor for class 07. Non-destructive: it only reads. Run it
+// BEFORE touching any code — if the baseline is broken, you cannot tell a
+// ticket failure from an environment failure. It never prints secrets.
+//
+// It assumes the Supabase project you prepared in class 06: same database,
+// same migrations, same seed. Nothing new to create.
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const results = [];
-let stopped = false;
+let failDetails = null;
 
 function report(name, ok) {
   results.push([name, ok]);
 }
 
-function printResults(title) {
-  console.log(`${title}\n`);
+function printResults() {
+  console.log('CLASS 07 ENVIRONMENT CHECK\n');
   const total = results.length;
   results.forEach(([name, ok], index) => {
     const label = `[${String(index + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}] ${name} `;
@@ -24,13 +27,15 @@ function printResults(title) {
   console.log('');
 }
 
-function fail(name, explanation) {
-  report(name, false);
-  stopped = true;
-  failDetails = explanation;
+function printFailure() {
+  if (!failDetails) return;
+  console.log(`FAIL: ${failDetails.what}\n`);
+  console.log('Possible causes:');
+  for (const cause of failDetails.causes) console.log(`- ${cause}`);
+  console.log('\nNext actions:');
+  failDetails.actions.forEach((item, index) => console.log(`${index + 1}. ${item}`));
+  console.log(`\nRecovery guide: ${failDetails.recovery}`);
 }
-
-let failDetails = null;
 
 function explainConnectionError(error) {
   const code = error.code ?? '';
@@ -39,10 +44,9 @@ function explainConnectionError(error) {
       what: 'PostgreSQL rejected the credentials.',
       causes: ['The password inside DATABASE_URL is incorrect.',
         'The password contains special characters that need URL encoding.'],
-      inspect: ['The Connect dialog in Supabase (copy the string again).',
-        'Whether your password has characters like @ : / # inside.'],
-      next: 'Reset or re-copy the database password, update .env, run the doctor again.',
-      recovery: 'recovery/database-connection.md'
+      actions: ['Re-copy the connection string from the Supabase Connect dialog.',
+        'Reset the database password if needed, update .env, run the doctor again.'],
+      recovery: 'recovery/environment.md'
     };
   }
   if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
@@ -50,84 +54,56 @@ function explainConnectionError(error) {
       what: 'The hostname inside DATABASE_URL could not be resolved.',
       causes: ['The connection string is incomplete or was typed by hand.',
         'Your network cannot reach the direct (IPv6) endpoint.'],
-      inspect: ['Copy the string from the Supabase Connect dialog — never type the host.',
-        'If the direct connection fails, use the Session pooler string from the same dialog.'],
-      next: 'Re-copy the connection string; try Session pooler on IPv4-only networks.',
-      recovery: 'recovery/database-connection.md'
+      actions: ['Copy the string from the Supabase Connect dialog — never type the host.',
+        'On IPv4-only networks use the Session pooler string from the same dialog.'],
+      recovery: 'recovery/environment.md'
     };
   }
   if (code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || /timeout/i.test(error.message)) {
     return {
       what: 'The database host did not answer in time.',
-      causes: ['The Supabase project is still starting or is paused.',
-        'A firewall or the network blocks the port.',
-        'Your network cannot reach the direct endpoint.'],
-      inspect: ['The project status in the Supabase dashboard.',
-        'The Session pooler alternative in the Connect dialog.'],
-      next: 'Wait for the project to be ready (or restore it), then run the doctor again.',
-      recovery: 'recovery/database-connection.md'
+      causes: ['The Supabase project is paused (free projects pause after inactivity).',
+        'A firewall or the network blocks the port.'],
+      actions: ['Open the Supabase dashboard and restore the project if it is paused.',
+        'Wait until it reports Active, then run the doctor again.'],
+      recovery: 'recovery/environment.md'
     };
   }
   return {
     what: 'Could not connect to PostgreSQL.',
     causes: ['The password is incorrect.', 'The connection string is incomplete.',
       'Your network cannot reach the endpoint.'],
-    inspect: ['The Supabase Connect dialog.', 'Your .env file (without sharing it).'],
-    next: 'Copy the connection string again; if direct fails, try Session pooler.',
-    recovery: 'recovery/database-connection.md'
+    actions: ['Copy the connection string again from the Supabase Connect dialog.',
+      'If the direct connection fails, try the Session pooler string.'],
+    recovery: 'recovery/environment.md'
   };
 }
 
-function printFailure() {
-  if (!failDetails) return;
-  console.log(`FAIL: ${failDetails.what}\n`);
-  console.log('Possible causes:');
-  for (const cause of failDetails.causes) console.log(`- ${cause}`);
-  console.log('\nNext actions:');
-  failDetails.inspect.forEach((item, index) => console.log(`${index + 1}. ${item}`));
-  console.log(`${failDetails.inspect.length + 1}. ${failDetails.next}`);
-  console.log(`\nRecovery guide: ${failDetails.recovery}`);
-}
-
-// ---------------------------------------------------------------- phase 1
+// ---------------------------------------------------------- 01 environment
 
 const envPath = path.join(ROOT, '.env');
-if (!existsSync(envPath)) {
-  report('Environment file found', false);
-  printResults('CLASS 06 ENVIRONMENT CHECK');
-  console.log('FAIL: There is no .env file yet.\n');
+let envOk = existsSync(envPath);
+if (envOk) {
+  const { default: dotenv } = await import('dotenv');
+  dotenv.config({ path: envPath });
+  envOk = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
+}
+report('Environment configured', envOk);
+if (!envOk) {
+  printResults();
+  console.log('FAIL: .env is missing or incomplete.\n');
   console.log('Possible causes:');
-  console.log('- You have not created your local configuration.');
+  console.log('- You have not created your local configuration yet.');
+  console.log('- DATABASE_URL or JWT_SECRET is empty.');
   console.log('\nNext actions:');
-  console.log('1. Copy the example file:  cp .env.example .env  (macOS/Linux)');
-  console.log('   or:  copy .env.example .env  (Windows cmd)');
-  console.log('2. Paste your DATABASE_URL from the Supabase Connect dialog.');
-  console.log('3. Generate a secret:  npm run generate:secret');
+  console.log('1. Copy the example file:  cp .env.example .env');
+  console.log('2. Paste the DATABASE_URL you used in class 06 (Supabase Connect dialog).');
+  console.log('3. Generate a secret if needed:  npm run generate:secret');
   console.log('\nRecovery guide: recovery/environment.md');
   process.exit(1);
 }
-report('Environment file found', true);
 
-const { default: dotenv } = await import('dotenv');
-dotenv.config({ path: envPath });
-
-const missing = ['DATABASE_URL', 'JWT_SECRET'].filter((name) => !process.env[name]);
-if (missing.length) {
-  fail('Required variables found', {
-    what: `The variable ${missing[0]} is empty or missing in .env.`,
-    causes: ['.env was copied but not filled in.',
-      'The variable name was changed or misspelled.'],
-    inspect: ['Open .env and check every variable listed in .env.example.'],
-    next: missing[0] === 'JWT_SECRET'
-      ? 'Run: npm run generate:secret and paste the value into .env.'
-      : 'Copy DATABASE_URL from the Supabase Connect dialog into .env.',
-    recovery: 'recovery/environment.md'
-  });
-  printResults('CLASS 06 ENVIRONMENT CHECK');
-  printFailure();
-  process.exit(1);
-}
-report('Required variables found', true);
+// ---------------------------------------------------------- 02 connection
 
 const { default: pg } = await import('pg');
 const client = new pg.Client({
@@ -137,116 +113,101 @@ const client = new pg.Client({
 
 try {
   await client.connect();
+  await client.query('SELECT 1');
   report('Database connection established', true);
 } catch (error) {
-  fail('Database connection established', explainConnectionError(error));
-  printResults('CLASS 06 ENVIRONMENT CHECK');
+  report('Database connection established', false);
+  failDetails = explainConnectionError(error);
+  printResults();
   printFailure();
   process.exit(1);
 }
 
-try {
-  await client.query('SELECT 1');
-  report('Database is reachable', true);
-} catch (error) {
-  fail('Database is reachable', explainConnectionError(error));
-  printResults('CLASS 06 ENVIRONMENT CHECK');
-  printFailure();
-  await client.end();
-  process.exit(1);
-}
+// ---------------------------------------------------------- 03 migrations
 
-// ------------------------------------------------------ schema installed?
-
-const ledger = await client.query(
+const tables = (await client.query(
   `SELECT to_regclass('public.schema_migrations') AS ledger,
           to_regclass('public.users') AS users,
           to_regclass('public.requests') AS requests,
           to_regclass('public.request_history') AS history`
-);
-const tables = ledger.rows[0];
-const schemaInstalled = tables.users && tables.requests && tables.history;
+)).rows[0];
 
-if (!schemaInstalled) {
-  let appOk = true;
-  try {
-    await import('../src/app.js');
-  } catch {
-    appOk = false;
-  }
-  report('Application configuration loaded', appOk);
-  printResults('CLASS 06 ENVIRONMENT CHECK');
-  if (!appOk) {
-    console.log('The application failed to load. Check JWT_SECRET in .env.');
-    console.log('Recovery guide: recovery/environment.md');
-    await client.end();
-    process.exit(1);
-  }
-  console.log('Database schema has not been installed yet.');
-  console.log('Next command: npm run db:migrate');
-  await client.end();
-  process.exit(0);
-}
-
-// ---------------------------------------------------------------- phase 2
-
-report('Migration table found', Boolean(tables.ledger));
-
-const { readdirSync } = await import('node:fs');
-const files = readdirSync(path.join(ROOT, 'database', 'migrations'))
-  .filter((file) => file.endsWith('.sql'));
-const appliedResult = tables.ledger
-  ? await client.query('SELECT name FROM schema_migrations')
-  : { rows: [] };
-const applied = new Set(appliedResult.rows.map((row) => row.name));
-const pending = files.filter((file) => !applied.has(file));
-report('All migrations applied', pending.length === 0);
-
-const seedUsers = await client.query(
-  `SELECT count(*)::int AS n FROM users WHERE email LIKE '%.seed@example.test'`
-);
-report('Seed users found', seedUsers.rows[0].n >= 3);
-
-const seedRequests = await client.query(
-  `SELECT count(*)::int AS n FROM requests
-   WHERE created_by IN (SELECT id FROM users WHERE email LIKE '%.seed@example.test')`
-);
-report('Seed requests found', seedRequests.rows[0].n >= 4);
-
-const history = await client.query('SELECT count(*)::int AS n FROM request_history');
-report('Request history found', history.rows[0].n >= 4);
-
-let appQueryOk = false;
-try {
-  await import('../src/app.js');
-  const join = await client.query(
-    `SELECT r.id FROM requests r JOIN users u ON u.id = r.created_by LIMIT 1`
+let migrationsOk = false;
+let pendingCount = 0;
+if (tables.ledger && tables.users && tables.requests && tables.history) {
+  const files = readdirSync(path.join(ROOT, 'database', 'migrations'))
+    .filter((file) => file.endsWith('.sql'));
+  const applied = new Set(
+    (await client.query('SELECT name FROM schema_migrations')).rows.map((row) => row.name)
   );
-  appQueryOk = join.rows.length >= 0;
-} catch {
-  appQueryOk = false;
+  pendingCount = files.filter((file) => !applied.has(file)).length;
+  migrationsOk = pendingCount === 0;
 }
-report('Application can query the database', appQueryOk);
+report('Migrations available', migrationsOk);
+
+// ---------------------------------------------------------------- 04 seed
+
+let seedOk = false;
+if (tables.users && tables.requests) {
+  const seedUsers = await client.query(
+    `SELECT count(*)::int AS n FROM users WHERE email LIKE '%.seed@example.test'`
+  );
+  const seedRequests = await client.query(
+    `SELECT count(*)::int AS n FROM requests
+     WHERE created_by IN (SELECT id FROM users WHERE email LIKE '%.seed@example.test')`
+  );
+  seedOk = seedUsers.rows[0].n >= 3 && seedRequests.rows[0].n >= 4;
+}
+report('Seed data available', seedOk);
 
 await client.end();
 
-// reorder: phase-2 layout per the class material
-printResults('CLASS 06 ENVIRONMENT CHECK');
+// ----------------------------------------------------------------- 05 app
+
+let appOk = true;
+try {
+  await import('../src/app.js');
+} catch {
+  appOk = false;
+}
+report('Application can be imported', appOk);
+
+// --------------------------------------------------------- 06 test runner
+
+const major = Number(process.version.slice(1).split('.')[0]);
+report('Test runner available', Number.isInteger(major) && major >= 20);
+
+// ----------------------------------------------------- 07 incident briefs
+
+const incidentsDir = path.join(ROOT, 'incidents');
+const briefs = ['INC-701-invalid-request-id.md', 'INC-702-invalid-priority.md',
+  'OPS-703-untraceable-errors.md'];
+report('Incident fixtures available',
+  existsSync(incidentsDir) && briefs.every((file) => existsSync(path.join(incidentsDir, file))));
+
+// ----------------------------------------------------------------- output
+
+printResults();
 
 const allOk = results.every(([, ok]) => ok);
-if (allOk && pending.length === 0 && seedUsers.rows[0].n >= 3) {
-  console.log('Environment ready.');
+if (allOk) {
+  console.log('Environment ready for incident response.');
   process.exit(0);
 }
 
-if (pending.length > 0) {
-  console.log(`There are ${pending.length} pending migration(s).`);
+if (!migrationsOk) {
+  console.log(pendingCount > 0
+    ? `There are ${pendingCount} pending migration(s).`
+    : 'The database schema is not installed yet.');
   console.log('Next command: npm run db:migrate');
-  console.log('Recovery guide: recovery/migrations.md');
-} else if (seedUsers.rows[0].n < 3 || seedRequests.rows[0].n < 4) {
+  console.log('Recovery guide: recovery/environment.md');
+} else if (!seedOk) {
   console.log('The schema exists but the workshop data is missing or incomplete.');
   console.log('Next command: npm run db:seed');
-  console.log('Recovery guide: recovery/seed.md');
+  console.log('Recovery guide: recovery/environment.md');
+} else if (!appOk) {
+  console.log('The application failed to load. Check JWT_SECRET in .env.');
+  console.log('Recovery guide: recovery/environment.md');
 } else {
   console.log('Something in the environment is not ready. Review the FAIL lines above.');
 }

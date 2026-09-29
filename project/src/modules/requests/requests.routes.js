@@ -8,9 +8,9 @@ import express from 'express';
 import {
   listRequests,
   getRequest,
-  getRequestHistory,
   createRequest,
-  patchRequest
+  patchRequest,
+  getHistory
 } from './requests.service.js';
 import { respondError } from '../../http/respond-error.js';
 
@@ -35,7 +35,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/:id/history', async (req, res) => {
   try {
-    res.status(200).json(await getRequestHistory(req.auth, Number(req.params.id)));
+    res.status(200).json(await getHistory(req.auth, Number(req.params.id)));
   } catch (error) {
     respondError(res, error);
   }
@@ -57,4 +57,4 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

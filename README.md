@@ -5,6 +5,12 @@
 * **Cédula:** 29.640.288
 
 ---
+## 📂 Estructura del Repositorio
+Este proyecto sigue un enfoque de **desarrollo continuo**, donde la aplicación backend dentro de la carpeta `project/` crece y se refactoriza clase a clase.
+
+Para revisar el código correspondiente a una entrega o hito específico, puedes utilizar los tags de Git:
+- **Clase 05:** `git checkout class-05`
+- **Clase 06:** `git checkout class-06` *(o tu rama/tag actual)*
 
 ## Descripción del repositorio
 Este repositorio contiene las actividades prácticas, los artefactos de diseño, las reflexiones y el proyecto transversal desarrollados a lo largo del curso de backend. Su propósito es evidenciar la evolución técnica, el cumplimiento de contratos HTTP estrictos, el diseño de arquitecturas modulares en capas, el control de ciclo de vida mediante máquinas de estado, la persistencia relacional con transacciones atómicas en PostgreSQL, y la integración de endpoints avanzados como la API de solicitudes y su auditoría histórica.

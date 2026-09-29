@@ -1,13 +1,15 @@
-# Guía de recuperación — Clase 06
+# Guía de recuperación — Clase 07
 
-Cuando algo falle, NO borres nada y NO cambies código para ocultar el error.
-Busca tu síntoma en estos archivos:
+Cuando algo se rompa, no cambies código al azar: busca tu síntoma aquí.
+Cada entrada tiene el mismo formato: qué significa, qué comprobar, qué
+hacer, qué NO hacer y una pregunta para comprender.
 
-1. `environment.md` — .env, variables, secretos, puerto.
-2. `database-connection.md` — contraseña, ENOTFOUND, timeout, IPv6, pooler.
-3. `migrations.md` — relaciones inexistentes, migración a medias, FKs.
-4. `seed.md` — seed incompleto, duplicados, qué borra y qué no.
-5. `tests.md` — JWT_SECRET distinto, tests que no terminan, cleanup, residuos.
+| Si el problema es de… | Abre |
+| --- | --- |
+| Entorno: Supabase, .env, seed, puerto, JWT | `environment.md` |
+| Middleware: error handler, respuestas colgadas, headers | `middleware.md` |
+| Logs: duplicados, request ID, JSON inválido | `logs.md` |
+| Pruebas: no terminan, pool, dependencias, datos sin limpiar | `tests.md` |
 
-Formato de cada problema: Síntoma → Significado → Comprueba → Acción →
-Qué NO hacer → Pregunta para comprender.
+Regla general: **reproduce antes de corregir**, y ejecuta
+`npm run class-07:doctor` antes de culpar a tu código.

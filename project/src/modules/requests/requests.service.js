@@ -12,11 +12,12 @@ import {
   insertHistoryEvent,
   findHistory
 } from './requests.store.js';
-import { mapRequestRow } from './request.mapper.js';
+import { mapRequestRow, mapHistoryEventRow } from './request.mapper.js';
 import { STATUSES, isValidStatus, isTerminal, canTransition } from './request-status.js';
 import {
   canListAllRequests,
   canViewRequest,
+  canViewHistory,
   canCreateRequest,
   canEditContent,
   canChangePriority,
@@ -50,31 +51,6 @@ function rejectServerControlledFields(body, extra = []) {
   }
 }
 
-function assertValidPriority(priority) {
-  if (!PRIORITIES.includes(priority)) {
-    throw new AppError('contract', 'INVALID_PRIORITY',
-      `Unknown priority "${priority}". Valid values: ${PRIORITIES.join(', ')}.`);
-  }
-}
-
-function mapHistoryRow(row) {
-  const mapped = {
-    id: row.id,
-    type: row.type,
-    createdAt: row.created_at
-  };
-  
-  if (row.type === 'status_changed') {
-    mapped.fromStatus = row.from_status; // Permite enviar null para el evento de nacimiento
-    mapped.toStatus = row.to_status;
-  } else if (row.type === 'priority_changed') {
-    mapped.fromPriority = row.from_priority;
-    mapped.toPriority = row.to_priority;
-  }
-  
-  return mapped;
-}
-
 export async function listRequests(actor, filters) {
   if (filters.status !== undefined && !isValidStatus(filters.status)) {
     throw new AppError('contract', 'INVALID_FILTER',
@@ -104,17 +80,6 @@ export async function getRequest(actor, id) {
   return request;
 }
 
-export async function getRequestHistory(actor, id) {
-  const row = await findById(id);
-  if (!row) throw notFound(id);
-
-  const request = mapRequestRow(row);
-  if (!canViewRequest(actor, request)) throw notFound(id);
-
-  const historyRows = await findHistory(id);
-  return historyRows.map(mapHistoryRow);
-}
-
 export async function createRequest(actor, input) {
   if (!canCreateRequest(actor)) {
     throw forbidden('Only requesters can create requests.');
@@ -128,7 +93,6 @@ export async function createRequest(actor, input) {
   if (typeof title !== 'string' || title.trim() === '') {
     throw new AppError('contract', 'TITLE_REQUIRED', 'A request needs a non-empty title.');
   }
-  if (priority !== undefined) assertValidPriority(priority);
 
   // Creation is a unit of work: the request AND its birth history
   // (NULL -> open) happen together or not at all. The owner and the
@@ -168,7 +132,6 @@ export async function patchRequest(actor, id, body) {
   if (changes.title !== undefined && (typeof changes.title !== 'string' || changes.title.trim() === '')) {
     throw new AppError('contract', 'TITLE_REQUIRED', 'The title cannot be empty.');
   }
-  if (changes.priority !== undefined) assertValidPriority(changes.priority);
   if (changes.status !== undefined && !isValidStatus(changes.status)) {
     throw new AppError('contract', 'INVALID_STATUS',
       `Unknown status "${changes.status}". Valid values: ${STATUSES.join(', ')}.`);
@@ -237,4 +200,15 @@ export async function patchRequest(actor, id, body) {
   });
 
   return mapRequestRow(row);
-} 
+}
+
+export async function getHistory(actor, id) {
+  const row = await findById(id);
+  if (!row) throw notFound(id);
+
+  const request = mapRequestRow(row);
+  if (!canViewHistory(actor, request)) throw notFound(id);
+
+  const rows = await findHistory(id);
+  return rows.map(mapHistoryEventRow);
+}

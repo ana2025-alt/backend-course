@@ -17,6 +17,8 @@ const REQUEST_COLUMNS = `
 `;
 
 export async function findAll(filters = {}, db = pool) {
+  // Values are parameterized; column names come from this file only —
+  // identifiers are never derived from client input.
   const conditions = [];
   const values = [];
 
@@ -28,6 +30,9 @@ export async function findAll(filters = {}, db = pool) {
     values.push(filters.priority);
     conditions.push(`priority = $${values.length}`);
   }
+  // Ownership scoping happens HERE, in SQL. Loading everything and
+  // filtering in JavaScript would ship other people's data into the
+  // process just to throw it away.
   if (filters.createdBy) {
     values.push(filters.createdBy);
     conditions.push(`created_by = $${values.length}`);
@@ -50,6 +55,9 @@ export async function findById(id, db = pool) {
 }
 
 export async function insertRequest({ title, description, priority, createdBy }, db = pool) {
+  // The database generates id, status default, and both timestamps.
+  // createdBy comes from the service — from the authenticated actor,
+  // never from the request body.
   const result = await db.query(
     `INSERT INTO requests (title, description, priority, created_by)
      VALUES ($1, $2, $3, $4)
@@ -82,10 +90,12 @@ export async function updateRequest(id, changes, db = pool) {
 }
 
 export async function insertHistoryEvent(event, db = pool) {
+  // One writer for both event types. The service decides WHICH fields the
+  // event carries; unused columns stay NULL.
   const { requestId, type, fromStatus, toStatus, fromPriority, toPriority, changedBy } = event;
   await db.query(
     `INSERT INTO request_history
-        (request_id, type, from_status, to_status, from_priority, to_priority, changed_by)
+       (request_id, type, from_status, to_status, from_priority, to_priority, changed_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     [requestId, type, fromStatus ?? null, toStatus ?? null,
       fromPriority ?? null, toPriority ?? null, changedBy ?? null]
@@ -93,12 +103,14 @@ export async function insertHistoryEvent(event, db = pool) {
 }
 
 export async function findHistory(requestId, db = pool) {
+  // Oldest first; the id is the STABLE tie-breaker when two events share
+  // the same timestamp.
   const result = await db.query(
     `SELECT id, type, from_status, to_status, from_priority, to_priority, created_at
      FROM request_history
      WHERE request_id = $1
-     ORDER BY created_at ASC, id ASC`,
+     ORDER BY created_at, id`,
     [requestId]
   );
   return result.rows;
-} 
+}

@@ -14,7 +14,7 @@ let counter = 0;
 
 export function uniqueEmail(name) {
   counter += 1;
-  return `class06-test-${runId}-${name}-${counter}@example.test`;
+  return `class07-test-${runId}-${name}-${counter}@example.test`;
 }
 
 export async function createUser({ name = 'user', role = 'requester' } = {}) {
@@ -41,7 +41,7 @@ export async function createRequestAs(token, fields = {}) {
   const response = await request(app)
     .post('/requests')
     .set('Authorization', `Bearer ${token}`)
-    .send({ title: `class06-test-${runId} request`, ...fields });
+    .send({ title: `class07-test-${runId} request`, ...fields });
   if (response.status !== 201) {
     throw new Error(`Could not create test request (${response.status}).`);
   }

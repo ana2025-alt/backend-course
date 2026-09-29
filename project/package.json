@@ -1,8 +1,8 @@
 {
-  "name": "class-06-request-api",
-  "version": "6.0.0",
+  "name": "class-07-request-api",
+  "version": "7.0.0",
   "private": true,
-  "description": "Request API \u2014 class 06 onboarding workshop (starter)",
+  "description": "Request API - class 07 incident response workshop (teacher solution)",
   "type": "module",
   "main": "src/server.js",
   "engines": {
@@ -15,11 +15,13 @@
     "test:auth": "node --test --test-concurrency=1 test/auth.test.js",
     "test:requests": "node --test --test-concurrency=1 test/requests.test.js",
     "generate:secret": "node scripts/generate-secret.js",
-    "class-06:doctor": "node scripts/check-environment.js",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
-    "exercise:test-failure": "node scripts/exercise-test-failure.js",
-    "validate:class-06": "node scripts/validate-class-06.js"
+    "class-07:doctor": "node scripts/check-environment.js",
+    "incidents:reproduce": "node scripts/reproduce-incidents.js",
+    "validate:class-07": "node scripts/validate-class-07.js",
+    "test:errors": "node --test --test-concurrency=1 test/errors.test.js",
+    "test:health": "node --test --test-concurrency=1 test/health.test.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

@@ -86,3 +86,22 @@ test('an agent can move a request through a valid transition', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.body.status, 'in_progress');
 });
+
+// ── BUG-106 regression test ────────────────────────────────────────────
+// A valid filter with zero matches is an EMPTY COLLECTION, not a missing
+// resource. This test pins that decision so it cannot silently regress.
+test('returns an empty array when a valid filter has no matches', async () => {
+  // Prepare: a fresh requester who has created nothing at all.
+  const loner = await createUser({ name: 'loner' });
+  const token = await loginAs(loner);
+
+  // Act
+  const response = await request(app)
+    .get('/requests?status=closed')
+    .set('Authorization', `Bearer ${token}`);
+
+  // Check: both the status AND the body — 200 with something that is not
+  // an empty array would still be a broken contract.
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, []);
+});

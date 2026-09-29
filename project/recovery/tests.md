@@ -1,83 +1,57 @@
-# Recuperación · Pruebas y aplicación
+# Recuperación · Pruebas
 
-## Token inválido en pruebas manuales
+## Un test que no termina
 
-Síntoma:
-Tenías un token que funcionaba y ahora todo responde 401 INVALID_TOKEN.
+**Síntoma:** `npm test` se queda colgado al final, o un archivo de prueba nunca cierra.
 
-Significado:
-El token se firmó con un secreto o expiró; si cambiaste `JWT_SECRET` o
-reiniciaste con otro `.env`, los tokens viejos ya no verifican.
+**Qué significa aproximadamente:** algo mantiene vivo el proceso: casi siempre un pool de PostgreSQL sin cerrar o un servidor sin `close()`.
 
-Comprueba:
-¿Cambiaste `.env` después de obtener el token? ¿Reiniciaste el server?
+**Qué comprobar:** que el archivo de prueba cierra el pool en su `after()` (mira cómo lo hacen las suites existentes con `closePool()`).
 
-Acción:
-Haz login de nuevo y usa el token fresco.
+**Acción sugerida:** añade el `after` que falta; cada archivo de prueba corre en su propio proceso, así que cada uno cierra lo suyo.
 
-Qué NO hacer:
-No toques el middleware para "aceptar" el token viejo.
+**Qué no hacer:** `process.exit()` dentro de la prueba; `--test-force-exit` para taparlo.
 
-Pregunta:
-¿Por qué cambiar el secreto invalida TODOS los tokens emitidos?
+**Pregunta para comprender:** ¿por qué el proceso de Node no termina mientras el pool tenga conexiones abiertas?
 
-## JWT_SECRET diferente entre procesos
+## Pool sin cerrar / `Cannot use a pool after calling end`
 
-Síntoma:
-El login del test funciona pero /auth/me responde 401 dentro de la misma
-corrida… o el server manual rechaza tokens del test.
+**Síntoma:** el mensaje anterior, o pruebas que fallan solo cuando corren juntas.
 
-Significado:
-Dos procesos con `.env` distintos firman y verifican con claves distintas.
+**Qué significa aproximadamente:** dos piezas comparten el MISMO pool y una lo cerró antes de que la otra terminara.
 
-Comprueba:
-¿Editaste `.env` con el server viejo aún corriendo?
+**Qué comprobar:** que solo el `after()` final cierra el pool, una vez; que ningún helper lo cierra por su cuenta.
 
-Acción:
-Un solo `.env`, reinicia todo lo que estaba corriendo.
+**Acción sugerida:** deja el cierre en un único lugar (el hook `after` del archivo).
 
-Pregunta:
-¿Quién debe compartir el secreto: los procesos o las personas?
+**Qué no hacer:** crear un pool nuevo por prueba para esquivar el problema.
 
-## El test "no termina" (la terminal queda colgada)
+**Pregunta para comprender:** ¿por qué el proyecto tiene UN pool compartido en vez de una conexión por consulta?
 
-Síntoma:
-La suite pasa pero el proceso no devuelve el prompt.
+## Una prueba depende de otra
 
-Significado:
-Una conexión quedó abierta — típicamente un pool sin cerrar.
+**Síntoma:** una prueba pasa sola pero falla dentro de la suite (o al revés); el orden importa.
 
-Comprueba:
-¿El archivo de test cierra el pool en su hook final (`after`)?
+**Qué significa aproximadamente:** una prueba consume estado que otra creó (o destruyó): mismos emails, misma solicitud, mismo contador.
 
-Acción:
-Usa los helpers: `cleanupCreatedData()` y `closePool()` en `after(...)`.
+**Qué comprobar:** que cada prueba crea SUS datos con los helpers (emails únicos por corrida) y no reutiliza ids de otra.
 
-Qué NO hacer:
-No agregues `process.exit()` dentro de un test para "forzar" el final.
+**Acción sugerida:** reescribe la prueba dependiente para que prepare todo lo que necesita.
 
-Pregunta:
-¿Qué diferencia hay entre "terminaron mis pruebas" y "terminó mi proceso"?
+**Qué no hacer:** fijar el orden de las pruebas para que "siempre pase".
 
-## Cleanup fallido o peligroso
+**Pregunta para comprender:** ¿qué hace que una prueba sea repetible en cualquier orden y máquina?
 
-Síntoma:
-Después de las pruebas faltan datos del seed, o sobran datos de prueba.
+## Datos temporales sin limpiar
 
-Significado:
-Un cleanup demasiado amplio borró de más, o uno frágil corrió de menos.
+**Síntoma:** la base acumula usuarios `class07-test-...` o solicitudes de prueba tras corridas fallidas.
 
-Comprueba:
-¿El cleanup borra por IDS REGISTRADOS o por una condición amplia?
-¿Corre en `finally`/`after` aunque la prueba falle?
+**Qué significa aproximadamente:** una corrida murió antes del cleanup, o una prueba creó datos fuera de los helpers (que registran cada id creado).
 
-Acción:
-Borra solo por ids recogidos, en orden history → requests → users.
-Restaura el seed con `npm run db:seed` si algo del seed faltara.
+**Qué comprobar:** que toda creación pasa por los helpers; que el cleanup vive en `after()` (se ejecuta también cuando la prueba falla).
 
-Qué NO hacer:
-`DELETE FROM requests;` sin WHERE. Nunca.
+**Acción sugerida:** borra los restos identificables por su email/título de prueba — solo esos — y corrige la prueba que los dejó.
 
-Pregunta:
-¿Qué pasaría con el trabajo de tu compañero de equipo si tu cleanup
-borrara "todo lo que parezca de prueba"?
+**Qué no hacer:** `DELETE FROM users;`, `TRUNCATE`, o borrar el seed para "limpiar".
+
+**Pregunta para comprender:** ¿por qué el orden de borrado es historial → solicitudes → usuarios?
