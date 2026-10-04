@@ -1,0 +1,80 @@
+PS D:\backend-course\project> npm run validate:class-06
+
+> class-06-request-api@6.0.0 validate:class-06
+> node scripts/validate-class-06.js
+
+CLASS 06 FINAL VALIDATION
+
+Environment
+[01/12] Database is reachable .............. PASS
+[02/12] Migrations are complete ............ PASS
+[03/12] Seed data is available ............. PASS
+
+Regression
+[04/12] Valid empty collection returns 200 .. PASS
+[05/12] Empty collection returns [] ........ PASS
+
+History endpoint
+[06/12] Authentication is required ......... PASS
+[07/12] Owner can read history ............. PASS
+[08/12] Stranger cannot read history ....... PASS
+[09/12] Agent can read history ............. PASS
+[10/12] Missing request returns 404 ........ PASS
+[11/12] Events are ordered correctly ....... PASS
+[12/12] Sensitive information is hidden .... PASS
+
+Cleanup
+Temporary validation data removed successfully.
+
+FINAL RESULT: PASSED
+PS D:\backend-course\project> 
+
+
+PS D:\backend-course\project> npm run validate:class-06
+
+> class-06-request-api@6.0.0 validate:class-06
+> node scripts/validate-class-06.js
+
+CLASS 06 FINAL VALIDATION
+
+Environment
+[01/12] Database is reachable .............. PASS
+[02/12] Migrations are complete ............ PASS
+[03/12] Seed data is available ............. PASS
+
+Regression
+[04/12] Valid empty collection returns 200 .. PASS
+[05/12] Empty collection returns [] ........ PASS
+
+History endpoint
+[06/12] Authentication is required ......... PASS
+[07/12] Owner can read history ............. PASS
+[08/12] Stranger cannot read history ....... PASS
+[09/12] Agent can read history ............. PASS
+[10/12] Missing request returns 404 ........ PASS
+[11/12] Events are ordered correctly ....... PASS
+[12/12] Sensitive information is hidden .... PASS
+
+Cleanup
+Temporary validation data removed successfully.
+
+FINAL RESULT: PASSED
+PS D:\backend-course\project> npm run class-06:doctor
+
+> class-06-request-api@6.0.0 class-06:doctor
+> node scripts/check-environment.js
+
+CLASS 06 ENVIRONMENT CHECK
+
+[01/10] Environment file found ............... PASS
+[02/10] Required variables found ............. PASS
+[03/10] Database connection established ...... PASS
+[04/10] Database is reachable ................ PASS
+[05/10] Migration table found ................ PASS
+[06/10] All migrations applied ............... PASS
+[07/10] Seed users found ..................... PASS
+[08/10] Seed requests found .................. PASS
+[09/10] Request history found ................ PASS
+[10/10] Application can query the database ... PASS
+
+Environment ready.
