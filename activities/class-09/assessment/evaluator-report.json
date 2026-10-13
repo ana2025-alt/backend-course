@@ -1,0 +1,82 @@
+{
+"protocolVersion": "ITSU-KNOWLEDGE-09-1.0",
+"rubricVersion": "BACKEND-01-08-K1",
+"evaluationId": "K09-STU042-BACKEND",
+"studentId": "STU042",
+"commit": "a1b2c3d",
+"variant": "B",
+"status": "COMPLETE",
+"action": "NONE",
+"questions": [
+{
+"questionId": "Q1",
+"topics": ["HTTP request lifecycle", "separation of concerns"],
+"levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 2 },
+"evidence": ["En las rutas (src/modules/requests/requests.routes.js), donde se extraen los parámetros y se llama al servicio desacoplado."],
+"strength": "Identifica con claridad la capa donde se separan los objetos HTTP de la lógica de negocio.",
+"gap": "",
+"rectification": "",
+"confidence": "high"
+},
+{
+"questionId": "Q2",
+"topics": ["Transactional consistency", "database integrity", "atomicity"],
+"levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 3 },
+"evidence": ["Sí, porque garantizan la atomicidad: o se ejecutan ambas operaciones con éxito o se revierte todo mediante un rollback."],
+"strength": "Comprende la importancia de las transacciones para evitar estados inconsistentes ante fallos parciales.",
+"gap": "",
+"rectification": "",
+"confidence": "high"
+},
+{
+"questionId": "Q3",
+"topics": ["Authentication", "authorization", "cryptographic signature", "JWT"],
+"levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 3 },
+"evidence": ["La autenticación verifica quién es el usuario mediante la firma criptográfica del JWT, mientras que la autorización determina qué acciones, roles o recursos tiene permiso."],
+"strength": "Distingue perfectamente identidad frente a permisos y reconoce el peligro de confiar en inputs del cliente.",
+"gap": "",
+"rectification": "",
+"confidence": "high"
+},
+{
+"questionId": "Q4",
+"topics": ["SQL Injection", "parameterized queries"],
+"levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 2 },
+"evidence": ["Porque las consultas parametrizadas separan la estructura de la sentencia SQL de los datos enviados por el usuario, evitando por completo la vulnerabilidad de Inyección SQL."],
+"strength": "Explica con precisión el mecanismo de defensa mediante la separación de la estructura y los datos.",
+"gap": "",
+"rectification": "",
+"confidence": "high"
+},
+{
+"questionId": "Q5",
+"topics": ["HTTP status codes", "error handling"],
+"levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 2 },
+"evidence": ["404 Not Found, indicando que el recurso solicitado no existe en el sistema."],
+"strength": "Selecciona adecuadamente el código de estado estándar para recursos no encontrados.",
+"gap": "",
+"rectification": "",
+"confidence": "high"
+}
+],
+"priorityGaps": [],
+"strengths": [
+"Sólido entendimiento de la separación entre transporte HTTP y lógica de negocio.",
+"Claridad conceptual sobre la atomicidad en operaciones de base de datos.",
+"Distinción precisa entre autenticación (JWT/firma) y autorización (policies)."
+],
+"recommendedStudyActions": [
+"Profundizar en patrones avanzados de manejo de transacciones anidadas.",
+"Explorar casos avanzados de control de acceso basado en atributos (ABAC).",
+"Revisar estrategias de auditoría de seguridad en APIs REST."
+],
+"reviewSignals": ["NONE"],
+"teacherReview": {
+"priority": "low",
+"oralVerificationRecommended": false,
+"questions": [],
+"minimumExpectedAnswers": [],
+"reason": "El estudiante demostró un dominio completo y consistente en todas las preguntas planteadas.",
+"digest": "Estudiante completó satisfactoriamente la evaluación con un dominio sobresaliente de arquitectura backend, transacciones y seguridad."
+}
+}
